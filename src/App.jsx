@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
 import { FlowProvider } from './context/FlowContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { CommunityProvider } from './context/CommunityContext';
@@ -24,11 +25,12 @@ import DesktopSplash from './components/DesktopSplash';
 function App() {
   return (
     <BrowserRouter>
-      <ThemeProvider>
-        <FlowProvider>
-          <CommunityProvider>
-            <DesktopSplash />
-            <Layout>
+      <AuthProvider>
+        <ThemeProvider>
+          <FlowProvider>
+            <CommunityProvider>
+              <DesktopSplash />
+              <Layout>
               <Routes>
                 <Route path="/" element={<PrayerPage />} />
                 <Route path="/devotional" element={<DevotionalPage />} />
@@ -47,10 +49,11 @@ function App() {
                 <Route path="/ad" element={<AdPage />} />
                 <Route path="/install" element={<InstallPage />} />
               </Routes>
-            </Layout>
-          </CommunityProvider>
-        </FlowProvider>
-      </ThemeProvider>
+              </Layout>
+            </CommunityProvider>
+          </FlowProvider>
+        </ThemeProvider>
+      </AuthProvider>
     </BrowserRouter>
   );
 }

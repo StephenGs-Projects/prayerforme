@@ -1,10 +1,14 @@
 import React, { createContext, useContext, useState } from 'react';
+import { useAuth } from './AuthContext';
 
 const CommunityContext = createContext();
 
 export const useCommunity = () => useContext(CommunityContext);
 
 export const CommunityProvider = ({ children }) => {
+    // Get userRole from AuthContext
+    const { userRole } = useAuth();
+
     // Initial dummy data
     const initialFeed = [
         { id: 1, name: 'Sarah M.', time: '2h ago', content: "Please pray for my mother's surgery tomorrow. We are hoping for a quick recovery and peace for the family during this time.", prayedCount: 24, commentCount: 5 },
@@ -18,8 +22,7 @@ export const CommunityProvider = ({ children }) => {
         { id: 102, content: "Inappropriate language here...", reporter: 'Emily W.', time: '5h ago', reason: 'Harassment' },
     ]);
 
-    // New State for Premium/Ads
-    const [userRole, setUserRole] = useState('free'); // 'free' or 'premium'
+    // Daily post state
     const [dailyPost, setDailyPost] = useState({
         adImage: null,
         adLink: 'https://example.com/journal',
@@ -62,7 +65,7 @@ export const CommunityProvider = ({ children }) => {
     return (
         <CommunityContext.Provider value={{
             feedItems, flaggedItems, flagItem, approveItem, rejectItem,
-            userRole, setUserRole, dailyPost, setDailyPost
+            userRole, dailyPost, setDailyPost
         }}>
             {children}
         </CommunityContext.Provider>
