@@ -20,6 +20,8 @@ import AboutPage from './pages/AboutPage';
 import TermsPage from './pages/TermsPage';
 import PrivacyPage from './pages/PrivacyPage';
 import InstallPage from './pages/InstallPage';
+import LoginPage from './pages/LoginPage';
+import SignupPage from './pages/SignupPage';
 import DesktopSplash from './components/DesktopSplash';
 
 function App() {
@@ -48,6 +50,8 @@ function App() {
                 <Route path="/admin" element={<AdminPage />} />
                 <Route path="/ad" element={<AdPage />} />
                 <Route path="/install" element={<InstallPage />} />
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/signup" element={<SignupPage />} />
               </Routes>
               </Layout>
             </CommunityProvider>
