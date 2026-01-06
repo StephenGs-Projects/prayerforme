@@ -3,16 +3,68 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ChevronLeft, MessageCircle, MoreVertical, Send, Flag, X, AlertTriangle } from 'lucide-react';
 import PrayerHandsIcon from '../components/PrayerHandsIcon';
 import { useCommunity } from '../context/CommunityContext';
+import { useAuth } from '../context/AuthContext';
+import {
+    getPrayerRequest,
+    getComments,
+    addComment,
+    incrementPrayerCount,
+    decrementPrayerCount,
+    trackPrayerInteraction,
+    removePrayerInteraction,
+    hasUserPrayed,
+    flagPrayerRequest
+} from '../firebase/firestore';
 
 const PrayerDetailPage = () => {
     const navigate = useNavigate();
     const { id } = useParams();
+    const { currentUser } = useAuth();
     const { flagItem } = useCommunity();
+    const [prayer, setPrayer] = useState(null);
+    const [comments, setComments] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [isPrayed, setIsPrayed] = useState(false);
-    const [prayedCount, setPrayedCount] = useState(24);
+    const [prayedCount, setPrayedCount] = useState(0);
+    const [newComment, setNewComment] = useState('');
+    const [submitting, setSubmitting] = useState(false);
     const [showMenu, setShowMenu] = useState(false);
     const [showFlagModal, setShowFlagModal] = useState(false);
     const menuRef = useRef(null);
+
+    // Fetch prayer request and comments
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                setLoading(true);
+
+                // Fetch prayer request
+                const prayerData = await getPrayerRequest(id);
+                if (prayerData) {
+                    setPrayer(prayerData);
+                    setPrayedCount(prayerData.prayedCount || 0);
+                }
+
+                // Fetch comments
+                const commentsData = await getComments(id);
+                setComments(commentsData);
+
+                // Check if current user has prayed
+                if (currentUser) {
+                    const prayed = await hasUserPrayed(id, currentUser.uid);
+                    setIsPrayed(prayed);
+                }
+            } catch (error) {
+                console.error('Error fetching prayer details:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (id) {
+            fetchData();
+        }
+    }, [id, currentUser]);
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -29,36 +81,83 @@ const PrayerDetailPage = () => {
         setShowMenu(false);
     };
 
-    const confirmFlag = (reason) => {
-        flagItem(id, reason);
-        setShowFlagModal(false);
-    };
+    const confirmFlag = async (reason) => {
+        if (!currentUser) return;
 
-    // Dummy data - in real app, fetch by ID
-    const prayer = {
-        id: 1,
-        name: 'Sarah M.',
-        time: '2 hours ago',
-        content: "Please pray for my mother's surgery tomorrow. We are hoping for a quick recovery and peace for the family during this time.",
-        prayedCount: 24,
-        commentCount: 5,
-        isPrayed: false
-    };
-
-    const comments = [
-        { id: 1, name: 'John D.', time: '1h ago', content: 'Praying for you and your family, Sarah! 🙏', avatarColor: '#fb7185' },
-        { id: 2, name: 'Emily W.', time: '45m ago', content: 'God is in control. Sending love.', avatarColor: '#fb923c' },
-        { id: 3, name: 'Michael B.', time: '30m ago', content: 'Amen. Believing for a successful surgery.', avatarColor: '#60a5fa' },
-    ];
-
-    const handlePrayClick = () => {
-        if (isPrayed) {
-            setPrayedCount(c => c - 1);
-            setIsPrayed(false);
-        } else {
-            setPrayedCount(c => c + 1);
-            setIsPrayed(true);
+        try {
+            await flagPrayerRequest(id, currentUser.uid, reason);
+            setShowFlagModal(false);
+            navigate(-1);
+        } catch (error) {
+            console.error('Error flagging request:', error);
         }
+    };
+
+    const handlePrayClick = async () => {
+        if (!currentUser) return;
+
+        try {
+            if (isPrayed) {
+                await Promise.all([
+                    decrementPrayerCount(id),
+                    removePrayerInteraction(id, currentUser.uid)
+                ]);
+                setPrayedCount(c => Math.max(0, c - 1));
+                setIsPrayed(false);
+            } else {
+                await Promise.all([
+                    incrementPrayerCount(id),
+                    trackPrayerInteraction(id, currentUser.uid)
+                ]);
+                setPrayedCount(c => c + 1);
+                setIsPrayed(true);
+            }
+        } catch (error) {
+            console.error('Error updating prayer:', error);
+        }
+    };
+
+    const handleSubmitComment = async () => {
+        if (!currentUser || !newComment.trim()) return;
+
+        try {
+            setSubmitting(true);
+
+            await addComment(id, {
+                userId: currentUser.uid,
+                userName: currentUser.displayName || 'Anonymous',
+                content: newComment.trim()
+            });
+
+            // Refresh comments
+            const commentsData = await getComments(id);
+            setComments(commentsData);
+
+            setNewComment('');
+        } catch (error) {
+            console.error('Error submitting comment:', error);
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const formatTimestamp = (timestamp) => {
+        if (!timestamp) return 'Just now';
+        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+        const now = new Date();
+        const diff = Math.floor((now - date) / 1000);
+
+        if (diff < 60) return 'Just now';
+        if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+        if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+        if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
+        return date.toLocaleDateString();
+    };
+
+    const getAvatarColor = (name) => {
+        const colors = ['#fb7185', '#fb923c', '#fbbf24', '#a3e635', '#60a5fa', '#c084fc'];
+        const index = (name || 'A').charCodeAt(0) % colors.length;
+        return colors[index];
     };
 
     return (
@@ -81,13 +180,36 @@ const PrayerDetailPage = () => {
                             marginRight: '16px',
                             color: 'var(--text-tertiary)',
                             background: 'transparent',
-                            border: 'none'
+                            border: 'none',
+                            cursor: 'pointer'
                         }}
                     >
                         <ChevronLeft size={24} />
                     </button>
                     <span style={{ fontSize: '18px', fontWeight: 500, color: 'var(--text-primary)' }}>Prayer Request</span>
                 </div>
+
+                {loading ? (
+                    <div style={{
+                        textAlign: 'center',
+                        padding: '48px',
+                        color: 'var(--text-tertiary)',
+                        fontSize: '16px',
+                        fontStyle: 'italic'
+                    }}>
+                        Loading prayer request...
+                    </div>
+                ) : !prayer ? (
+                    <div style={{
+                        textAlign: 'center',
+                        padding: '48px',
+                        color: 'var(--text-tertiary)',
+                        fontSize: '16px'
+                    }}>
+                        Prayer request not found
+                    </div>
+                ) : (
+                    <>
 
                 {/* Main Prayer Card */}
                 <div style={{
@@ -102,23 +224,23 @@ const PrayerDetailPage = () => {
                             width: '48px',
                             height: '48px',
                             borderRadius: '50%',
-                            background: '#fb7185',
+                            background: getAvatarColor(prayer.userName || 'Anonymous'),
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             flexShrink: 0
                         }}>
                             <span style={{ color: 'var(--bg-surface)', fontWeight: 300, fontSize: '18px' }}>
-                                {prayer.name.charAt(0)}
+                                {(prayer.userName || 'A').charAt(0)}
                             </span>
                         </div>
 
                         <div style={{ flex: 1, minWidth: 0 }}>
                             <h3 style={{ fontSize: '16px', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '2px' }}>
-                                {prayer.name}
+                                {prayer.userName || 'Anonymous'}
                             </h3>
                             <p style={{ fontSize: '11px', color: 'var(--text-light)', letterSpacing: '0.05em' }}>
-                                {prayer.time}
+                                {formatTimestamp(prayer.createdAt)}
                             </p>
                         </div>
 
@@ -216,9 +338,9 @@ const PrayerDetailPage = () => {
                             <PrayerHandsIcon size={20} color="currentColor" />
                             <span>{prayedCount} Prayed</span>
                         </button>
-                        <button style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#06b6d4', background: 'transparent', fontSize: '14px', fontWeight: 300 }}>
+                        <button style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#06b6d4', background: 'transparent', fontSize: '14px', fontWeight: 300, border: 'none', cursor: 'default' }}>
                             <MessageCircle size={20} strokeWidth={2} />
-                            <span>{prayer.commentCount} Comments</span>
+                            <span>{comments.length} Comments</span>
                         </button>
                     </div>
                 </div>
@@ -228,41 +350,52 @@ const PrayerDetailPage = () => {
 
                 {/* Comments List */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
-                    {comments.map(comment => (
-                        <div key={comment.id} style={{
-                            background: 'var(--bg-surface)',
-                            padding: '16px',
-                            borderRadius: '12px',
-                            border: '1px solid var(--border-surface)'
+                    {comments.length === 0 ? (
+                        <div style={{
+                            textAlign: 'center',
+                            padding: '24px',
+                            color: 'var(--text-tertiary)',
+                            fontSize: '14px'
                         }}>
-                            <div style={{ display: 'flex', gap: '12px', marginBottom: '8px' }}>
-                                <div style={{
-                                    width: '32px',
-                                    height: '32px',
-                                    borderRadius: '50%',
-                                    background: comment.avatarColor,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    fontSize: '14px',
-                                    color: '#fff',
-                                    fontWeight: 300,
-                                    flexShrink: 0
-                                }}>
-                                    {comment.name.charAt(0)}
-                                </div>
-                                <div style={{ flex: 1 }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                                        <span style={{ fontWeight: 500, fontSize: '14px', color: 'var(--text-primary)' }}>{comment.name}</span>
-                                        <span style={{ fontSize: '11px', color: 'var(--text-light)' }}>{comment.time}</span>
+                            No comments yet. Be the first to share encouragement!
+                        </div>
+                    ) : (
+                        comments.map(comment => (
+                            <div key={comment.id} style={{
+                                background: 'var(--bg-surface)',
+                                padding: '16px',
+                                borderRadius: '12px',
+                                border: '1px solid var(--border-surface)'
+                            }}>
+                                <div style={{ display: 'flex', gap: '12px', marginBottom: '8px' }}>
+                                    <div style={{
+                                        width: '32px',
+                                        height: '32px',
+                                        borderRadius: '50%',
+                                        background: getAvatarColor(comment.userName || 'Anonymous'),
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontSize: '14px',
+                                        color: '#fff',
+                                        fontWeight: 300,
+                                        flexShrink: 0
+                                    }}>
+                                        {(comment.userName || 'A').charAt(0)}
                                     </div>
-                                    <p style={{ fontSize: '14px', lineHeight: 1.6, color: 'var(--text-secondary)', fontWeight: 300, whiteSpace: 'pre-wrap' }}>
-                                        {comment.content}
-                                    </p>
+                                    <div style={{ flex: 1 }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                                            <span style={{ fontWeight: 500, fontSize: '14px', color: 'var(--text-primary)' }}>{comment.userName || 'Anonymous'}</span>
+                                            <span style={{ fontSize: '11px', color: 'var(--text-light)' }}>{formatTimestamp(comment.createdAt)}</span>
+                                        </div>
+                                        <p style={{ fontSize: '14px', lineHeight: 1.6, color: 'var(--text-secondary)', fontWeight: 300, whiteSpace: 'pre-wrap' }}>
+                                            {comment.content}
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    ))}
+                        ))
+                    )}
                 </div>
 
                 {/* Add Comment Input */}
@@ -276,7 +409,16 @@ const PrayerDetailPage = () => {
                     gap: '12px'
                 }}>
                     <textarea
-                        placeholder="Write a supportive comment..."
+                        value={newComment}
+                        onChange={(e) => setNewComment(e.target.value)}
+                        onKeyPress={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey && !submitting) {
+                                e.preventDefault();
+                                handleSubmitComment();
+                            }
+                        }}
+                        placeholder={currentUser ? "Write a supportive comment..." : "Sign in to comment"}
+                        disabled={!currentUser || submitting}
                         onInput={(e) => {
                             e.target.style.height = 'auto';
                             e.target.style.height = e.target.scrollHeight + 'px';
@@ -293,13 +435,26 @@ const PrayerDetailPage = () => {
                             minHeight: '20px',
                             maxHeight: '120px',
                             fontFamily: 'inherit',
-                            lineHeight: '1.5'
+                            lineHeight: '1.5',
+                            cursor: !currentUser ? 'not-allowed' : 'text'
                         }}
                     />
-                    <button style={{ color: '#06b6d4', background: 'transparent' }}>
+                    <button
+                        onClick={handleSubmitComment}
+                        disabled={!currentUser || !newComment.trim() || submitting}
+                        style={{
+                            color: (!currentUser || !newComment.trim() || submitting) ? 'var(--text-tertiary)' : '#06b6d4',
+                            background: 'transparent',
+                            border: 'none',
+                            cursor: (!currentUser || !newComment.trim() || submitting) ? 'not-allowed' : 'pointer',
+                            opacity: submitting ? 0.5 : 1
+                        }}
+                    >
                         <Send size={20} strokeWidth={2} />
                     </button>
                 </div>
+                </>
+                )}
                 {/* Flagging Modal */}
                 {showFlagModal && (
                     <div style={{
