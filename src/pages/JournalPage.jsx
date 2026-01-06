@@ -2,11 +2,15 @@ import React, { useState } from 'react';
 import { ArrowRight, Check } from 'lucide-react';
 import { useFlow } from '../context/FlowContext';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { saveJournalEntry } from '../firebase/firestore';
 
 const JournalPage = () => {
     const [selectedPrompt, setSelectedPrompt] = useState(0);
     const [entry, setEntry] = useState('');
+    const [saving, setSaving] = useState(false);
     const { showNav } = useFlow();
+    const { currentUser } = useAuth();
     const navigate = useNavigate();
 
     const prompts = [
@@ -15,7 +19,28 @@ const JournalPage = () => {
         "What is burdening your heart right now?"
     ];
 
-    const handleComplete = () => {
+    const handleComplete = async () => {
+        // Save journal entry if user is logged in and has written something
+        if (currentUser && entry.trim()) {
+            try {
+                setSaving(true);
+
+                // Get today's date in YYYY-MM-DD format
+                const today = new Date().toISOString().split('T')[0];
+
+                // Save the journal entry
+                await saveJournalEntry(currentUser.uid, today, {
+                    prompt: prompts[selectedPrompt],
+                    content: entry.trim()
+                });
+            } catch (error) {
+                console.error('Error saving journal entry:', error);
+                // Continue to navigation even if save fails
+            } finally {
+                setSaving(false);
+            }
+        }
+
         showNav();
         navigate('/community');
     };
@@ -127,27 +152,37 @@ const JournalPage = () => {
                     />
                 </div>
 
-                {/* Skip Button */}
+                {/* Complete/Skip Button */}
                 <button
                     onClick={handleComplete}
+                    disabled={saving}
                     style={{
                         display: 'flex',
                         alignItems: 'center',
                         gap: '8px',
-                        color: 'var(--text-tertiary)',
+                        color: entry.trim() ? 'var(--accent-cyan)' : 'var(--text-tertiary)',
                         background: 'transparent',
                         border: 'none',
-                        fontWeight: 300,
+                        fontWeight: entry.trim() ? 500 : 300,
                         margin: '0 auto',
-                        cursor: 'pointer',
+                        cursor: saving ? 'not-allowed' : 'pointer',
                         transition: 'color 0.2s',
                         fontSize: '16px',
-                        letterSpacing: '0.02em'
+                        letterSpacing: '0.02em',
+                        opacity: saving ? 0.5 : 1
                     }}
-                    onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
-                    onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-tertiary)'}
+                    onMouseEnter={(e) => {
+                        if (!saving) {
+                            e.currentTarget.style.color = entry.trim() ? '#38bdf8' : 'var(--text-secondary)';
+                        }
+                    }}
+                    onMouseLeave={(e) => {
+                        if (!saving) {
+                            e.currentTarget.style.color = entry.trim() ? 'var(--accent-cyan)' : 'var(--text-tertiary)';
+                        }
+                    }}
                 >
-                    <span>Skip</span>
+                    <span>{saving ? 'Saving...' : (entry.trim() ? 'Complete' : 'Skip')}</span>
                     <ArrowRight size={16} strokeWidth={2} />
                 </button>
             </div>

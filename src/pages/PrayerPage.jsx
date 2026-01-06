@@ -2,12 +2,16 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Play } from 'lucide-react';
 import PrayerHandsIcon from '../components/PrayerHandsIcon';
+import { getDailyContent, getLatestDailyContent } from '../firebase/firestore';
 
 const PrayerPage = () => {
     const navigate = useNavigate();
     const [greeting, setGreeting] = useState('Good Morning');
     const [progress, setProgress] = useState(0);
     const [isHolding, setIsHolding] = useState(false);
+    const [dailyContent, setDailyContent] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
     const intervalRef = useRef(null);
 
     useEffect(() => {
@@ -15,6 +19,35 @@ const PrayerPage = () => {
         if (hour < 12) setGreeting('Good Morning');
         else if (hour < 18) setGreeting('Good Afternoon');
         else setGreeting('Good Evening');
+    }, []);
+
+    useEffect(() => {
+        const fetchDailyContent = async () => {
+            try {
+                setLoading(true);
+                setError(null);
+
+                // Get today's date in YYYY-MM-DD format
+                const today = new Date().toISOString().split('T')[0];
+
+                // Try to get today's content first
+                let content = await getDailyContent(today);
+
+                // If no content for today, get the latest published content
+                if (!content) {
+                    content = await getLatestDailyContent();
+                }
+
+                setDailyContent(content);
+            } catch (err) {
+                console.error('Error fetching daily content:', err);
+                setError('Failed to load daily content');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchDailyContent();
     }, []);
 
     const startHold = () => {
@@ -86,24 +119,43 @@ const PrayerPage = () => {
                         marginBottom: '24px'
                     }} />
 
-                    <p style={{
-                        fontSize: '18px',
-                        lineHeight: 1.7,
-                        color: 'var(--text-secondary)',
-                        marginBottom: '24px',
-                        fontWeight: 300
-                    }}>
-                        "Do not be anxious about anything, but in every situation, by prayer and petition, with thanksgiving, present your requests to God."
-                    </p>
+                    {loading ? (
+                        <p style={{
+                            fontSize: '16px',
+                            color: 'var(--text-tertiary)',
+                            fontStyle: 'italic'
+                        }}>
+                            Loading today's verse...
+                        </p>
+                    ) : error ? (
+                        <p style={{
+                            fontSize: '16px',
+                            color: '#ef4444'
+                        }}>
+                            {error}
+                        </p>
+                    ) : (
+                        <>
+                            <p style={{
+                                fontSize: '18px',
+                                lineHeight: 1.7,
+                                color: 'var(--text-secondary)',
+                                marginBottom: '24px',
+                                fontWeight: 300
+                            }}>
+                                "{dailyContent?.verse?.text || 'Do not be anxious about anything, but in every situation, by prayer and petition, with thanksgiving, present your requests to God.'}"
+                            </p>
 
-                    <p style={{
-                        fontSize: '14px',
-                        color: 'var(--text-tertiary)',
-                        fontWeight: 300,
-                        fontStyle: 'italic'
-                    }}>
-                        Philippians 4:6
-                    </p>
+                            <p style={{
+                                fontSize: '14px',
+                                color: 'var(--text-tertiary)',
+                                fontWeight: 300,
+                                fontStyle: 'italic'
+                            }}>
+                                {dailyContent?.verse?.reference || 'Philippians 4:6'}
+                            </p>
+                        </>
+                    )}
                 </div>
 
                 {/* Prayer Section */}
@@ -142,14 +194,24 @@ const PrayerPage = () => {
                         </button>
                     </div>
 
-                    <p style={{
-                        fontSize: '16px',
-                        lineHeight: 1.8,
-                        color: 'var(--text-secondary)',
-                        fontWeight: 300
-                    }}>
-                        Lord, thank you for this new day. Help me to trust You with all my heart and lean not on my own understanding. Guide my steps and fill me with Your peace that surpasses all understanding. Amen.
-                    </p>
+                    {loading ? (
+                        <p style={{
+                            fontSize: '14px',
+                            color: 'var(--text-tertiary)',
+                            fontStyle: 'italic'
+                        }}>
+                            Loading prayer...
+                        </p>
+                    ) : error ? null : (
+                        <p style={{
+                            fontSize: '16px',
+                            lineHeight: 1.8,
+                            color: 'var(--text-secondary)',
+                            fontWeight: 300
+                        }}>
+                            {dailyContent?.prayer || 'Lord, thank you for this new day. Help me to trust You with all my heart and lean not on my own understanding. Guide my steps and fill me with Your peace that surpasses all understanding. Amen.'}
+                        </p>
+                    )}
                 </div>
 
                 {/* Hold Button (Centered, fixed to bottom) */}

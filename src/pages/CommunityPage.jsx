@@ -4,11 +4,27 @@ import { MessageCircle, MoreVertical, Send, Flag, X, AlertTriangle } from 'lucid
 import PrayerHandsIcon from '../components/PrayerHandsIcon';
 import { useFlow } from '../context/FlowContext';
 import { useCommunity } from '../context/CommunityContext';
+import { useAuth } from '../context/AuthContext';
+import {
+    subscribeToPrayerRequests,
+    createPrayerRequest,
+    incrementPrayerCount,
+    decrementPrayerCount,
+    trackPrayerInteraction,
+    removePrayerInteraction,
+    hasUserPrayed,
+    flagPrayerRequest
+} from '../firebase/firestore';
 
 const CommunityPage = () => {
     const navigate = useNavigate();
     const { setIsNavVisible } = useFlow();
     const { feedItems, flagItem } = useCommunity();
+    const { currentUser } = useAuth();
+    const [prayerRequests, setPrayerRequests] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [newRequest, setNewRequest] = useState('');
+    const [submitting, setSubmitting] = useState(false);
     const [flaggingId, setFlaggingId] = useState(null);
     const [showFlagModal, setShowFlagModal] = useState(false);
 
@@ -16,15 +32,75 @@ const CommunityPage = () => {
         setIsNavVisible(true);
     }, [setIsNavVisible]);
 
+    // Subscribe to real-time prayer requests
+    useEffect(() => {
+        setLoading(true);
+
+        const unsubscribe = subscribeToPrayerRequests((requests) => {
+            // Format requests to match the expected structure
+            const formattedRequests = requests.map(req => ({
+                ...req,
+                name: req.userName || 'Anonymous',
+                time: req.createdAt ? formatTimestamp(req.createdAt) : 'Just now'
+            }));
+            setPrayerRequests(formattedRequests);
+            setLoading(false);
+        });
+
+        return () => unsubscribe();
+    }, []);
+
+    // Helper function to format timestamp
+    const formatTimestamp = (timestamp) => {
+        if (!timestamp) return 'Just now';
+
+        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+        const now = new Date();
+        const diff = Math.floor((now - date) / 1000); // difference in seconds
+
+        if (diff < 60) return 'Just now';
+        if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+        if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+        if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
+        return date.toLocaleDateString();
+    };
+
+    const handleSubmitRequest = async () => {
+        if (!newRequest.trim() || !currentUser) return;
+
+        try {
+            setSubmitting(true);
+
+            await createPrayerRequest({
+                userId: currentUser.uid,
+                userName: currentUser.displayName || 'Anonymous',
+                userEmail: currentUser.email,
+                content: newRequest.trim()
+            });
+
+            setNewRequest('');
+        } catch (error) {
+            console.error('Error submitting prayer request:', error);
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
     const handleFlagClick = (id) => {
         setFlaggingId(id);
         setShowFlagModal(true);
     };
 
-    const confirmFlag = (reason) => {
-        flagItem(flaggingId, reason);
-        setShowFlagModal(false);
-        setFlaggingId(null);
+    const confirmFlag = async (reason) => {
+        if (!currentUser) return;
+
+        try {
+            await flagPrayerRequest(flaggingId, currentUser.uid, reason);
+            setShowFlagModal(false);
+            setFlaggingId(null);
+        } catch (error) {
+            console.error('Error flagging request:', error);
+        }
     };
 
     // Avatar colors
@@ -38,9 +114,22 @@ const CommunityPage = () => {
     // Sub-component for Feed Item
     const FeedItem = ({ item }) => {
         const [isPrayed, setIsPrayed] = useState(false);
-        const [count, setCount] = useState(item.prayedCount);
+        const [count, setCount] = useState(item.prayedCount || 0);
         const [showMenu, setShowMenu] = useState(false);
+        const [checking, setChecking] = useState(true);
         const menuRef = useRef(null);
+
+        // Check if user has already prayed for this request
+        useEffect(() => {
+            const checkPrayedStatus = async () => {
+                if (currentUser) {
+                    const prayed = await hasUserPrayed(item.id, currentUser.uid);
+                    setIsPrayed(prayed);
+                }
+                setChecking(false);
+            };
+            checkPrayedStatus();
+        }, [item.id]);
 
         useEffect(() => {
             const handleClickOutside = (event) => {
@@ -52,14 +141,30 @@ const CommunityPage = () => {
             return () => document.removeEventListener("mousedown", handleClickOutside);
         }, []);
 
-        const handlePrayClick = (e) => {
+        const handlePrayClick = async (e) => {
             e.stopPropagation();
-            if (isPrayed) {
-                setCount(c => c - 1);
-                setIsPrayed(false);
-            } else {
-                setCount(c => c + 1);
-                setIsPrayed(true);
+            if (!currentUser) return;
+
+            try {
+                if (isPrayed) {
+                    // Remove prayer
+                    await Promise.all([
+                        decrementPrayerCount(item.id),
+                        removePrayerInteraction(item.id, currentUser.uid)
+                    ]);
+                    setCount(c => Math.max(0, c - 1));
+                    setIsPrayed(false);
+                } else {
+                    // Add prayer
+                    await Promise.all([
+                        incrementPrayerCount(item.id),
+                        trackPrayerInteraction(item.id, currentUser.uid)
+                    ]);
+                    setCount(c => c + 1);
+                    setIsPrayed(true);
+                }
+            } catch (error) {
+                console.error('Error updating prayer:', error);
             }
         };
 
@@ -234,7 +339,15 @@ const CommunityPage = () => {
                 }}>
                     <input
                         type="text"
-                        placeholder="Share a prayer request..."
+                        value={newRequest}
+                        onChange={(e) => setNewRequest(e.target.value)}
+                        onKeyPress={(e) => {
+                            if (e.key === 'Enter' && !submitting) {
+                                handleSubmitRequest();
+                            }
+                        }}
+                        placeholder={currentUser ? "Share a prayer request..." : "Sign in to share a prayer request"}
+                        disabled={!currentUser || submitting}
                         style={{
                             flex: 1,
                             background: 'transparent',
@@ -243,24 +356,62 @@ const CommunityPage = () => {
                             fontSize: '16px',
                             fontWeight: 300,
                             outline: 'none',
-                            fontFamily: 'inherit'
+                            fontFamily: 'inherit',
+                            cursor: !currentUser ? 'not-allowed' : 'text'
                         }}
                     />
-                    <button style={{
-                        color: '#06b6d4',
-                        transition: 'color 0.2s'
-                    }}
-                        onMouseEnter={(e) => e.currentTarget.style.color = '#0891b2'}
-                        onMouseLeave={(e) => e.currentTarget.style.color = '#06b6d4'}
+                    <button
+                        onClick={handleSubmitRequest}
+                        disabled={!currentUser || !newRequest.trim() || submitting}
+                        style={{
+                            color: (!currentUser || !newRequest.trim() || submitting) ? 'var(--text-tertiary)' : '#06b6d4',
+                            transition: 'color 0.2s',
+                            cursor: (!currentUser || !newRequest.trim() || submitting) ? 'not-allowed' : 'pointer',
+                            opacity: submitting ? 0.5 : 1
+                        }}
+                        onMouseEnter={(e) => {
+                            if (currentUser && newRequest.trim() && !submitting) {
+                                e.currentTarget.style.color = '#0891b2';
+                            }
+                        }}
+                        onMouseLeave={(e) => {
+                            if (currentUser && newRequest.trim() && !submitting) {
+                                e.currentTarget.style.color = '#06b6d4';
+                            }
+                        }}
                     >
                         <Send size={20} strokeWidth={2} />
                     </button>
                 </div>
 
                 {/* Feed */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                    {feedItems.map(item => <FeedItem key={item.id} item={item} />)}
-                </div>
+                {loading ? (
+                    <div style={{
+                        textAlign: 'center',
+                        padding: '48px',
+                        color: 'var(--text-tertiary)',
+                        fontSize: '16px',
+                        fontStyle: 'italic'
+                    }}>
+                        Loading prayer requests...
+                    </div>
+                ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                        {(prayerRequests.length > 0 ? prayerRequests : feedItems).map(item => (
+                            <FeedItem key={item.id} item={item} />
+                        ))}
+                        {prayerRequests.length === 0 && feedItems.length === 0 && (
+                            <div style={{
+                                textAlign: 'center',
+                                padding: '48px',
+                                color: 'var(--text-tertiary)',
+                                fontSize: '16px'
+                            }}>
+                                No prayer requests yet. Be the first to share!
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 {/* Flagging Modal */}
                 {showFlagModal && (
