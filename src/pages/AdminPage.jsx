@@ -1,6 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCommunity } from '../context/CommunityContext';
+import { useAuth } from '../context/AuthContext';
+import {
+    saveDailyContent,
+    getDailyContent,
+    getFlaggedRequests,
+    approveFlaggedRequest,
+    rejectFlaggedRequest
+} from '../firebase/firestore';
 import {
     ChevronLeft, Plus, Calendar, Save, Send, Pencil, Trash2, Bold, Italic, List, Music, Upload,
     LayoutDashboard, FileText, Users, ShieldAlert, Settings, LogOut, Search, MoreVertical, CheckCircle, XCircle, ShieldCheck, MessageCircle
@@ -507,42 +515,112 @@ const PrayersView = () => {
 };
 
 const ModerationView = () => {
-    const { flaggedItems, approveItem, rejectItem } = useCommunity();
+    const [flaggedItems, setFlaggedItems] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchFlaggedRequests = async () => {
+            try {
+                setLoading(true);
+                const requests = await getFlaggedRequests();
+                setFlaggedItems(requests);
+            } catch (error) {
+                console.error('Error fetching flagged requests:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchFlaggedRequests();
+    }, []);
+
+    const handleApprove = async (requestId) => {
+        try {
+            await approveFlaggedRequest(requestId);
+            // Remove from local state after approval
+            setFlaggedItems(flaggedItems.filter(item => item.id !== requestId));
+        } catch (error) {
+            console.error('Error approving request:', error);
+            alert('Failed to approve request. Please try again.');
+        }
+    };
+
+    const handleReject = async (requestId) => {
+        try {
+            await rejectFlaggedRequest(requestId);
+            // Remove from local state after rejection
+            setFlaggedItems(flaggedItems.filter(item => item.id !== requestId));
+        } catch (error) {
+            console.error('Error rejecting request:', error);
+            alert('Failed to reject request. Please try again.');
+        }
+    };
+
+    const formatTime = (timestamp) => {
+        if (!timestamp) return '';
+        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+        const now = new Date();
+        const diffMs = now - date;
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMins / 60);
+        const diffDays = Math.floor(diffHours / 24);
+
+        if (diffMins < 1) return 'just now';
+        if (diffMins < 60) return `${diffMins}m ago`;
+        if (diffHours < 24) return `${diffHours}h ago`;
+        return `${diffDays}d ago`;
+    };
 
     return (
         <div className="fade-in">
             <h2 style={{ fontSize: '24px', marginBottom: '24px' }}>Moderation Queue</h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                {flaggedItems.length === 0 ? (
-                    <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-tertiary)' }}>No flagged items. Good job!</div>
-                ) : flaggedItems.map(item => (
-                    <div key={item.id} className="glass" style={{ padding: '20px', borderRadius: 'var(--radius-lg)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+            {loading ? (
+                <div style={{
+                    textAlign: 'center',
+                    padding: '48px',
+                    color: 'var(--text-tertiary)',
+                    fontSize: '16px',
+                    fontStyle: 'italic'
+                }}>
+                    Loading flagged requests...
+                </div>
+            ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    {flaggedItems.length === 0 ? (
+                        <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-tertiary)' }}>No flagged items. Good job!</div>
+                    ) : flaggedItems.map(item => (
+                        <div key={item.id} className="glass" style={{ padding: '20px', borderRadius: 'var(--radius-lg)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                                <div style={{ display: 'flex', gap: '12px' }}>
+                                    <span style={{ fontSize: '12px', padding: '4px 8px', borderRadius: '4px', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', fontWeight: 600 }}>
+                                        {item.flagReason || 'Flagged'}
+                                    </span>
+                                    <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>
+                                        Reported by {item.flaggedBy || 'Anonymous'} • {formatTime(item.flaggedAt)}
+                                    </span>
+                                </div>
+                            </div>
+                            <div style={{ padding: '16px', background: 'rgba(0,0,0,0.2)', borderRadius: 'var(--radius-md)', marginBottom: '16px', fontSize: '14px', color: 'var(--text-primary)' }}>
+                                "{item.content}"
+                            </div>
                             <div style={{ display: 'flex', gap: '12px' }}>
-                                <span style={{ fontSize: '12px', padding: '4px 8px', borderRadius: '4px', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', fontWeight: 600 }}>{item.reason}</span>
-                                <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>Reported by {item.reporter} • {item.time}</span>
+                                <button
+                                    onClick={() => handleApprove(item.id)}
+                                    style={{ flex: 1, padding: '10px', borderRadius: 'var(--radius-md)', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                                >
+                                    <CheckCircle size={18} /> Keep
+                                </button>
+                                <button
+                                    onClick={() => handleReject(item.id)}
+                                    style={{ flex: 1, padding: '10px', borderRadius: 'var(--radius-md)', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                                >
+                                    <XCircle size={18} /> Delete
+                                </button>
                             </div>
                         </div>
-                        <div style={{ padding: '16px', background: 'rgba(0,0,0,0.2)', borderRadius: 'var(--radius-md)', marginBottom: '16px', fontSize: '14px', color: 'var(--text-primary)' }}>
-                            "{item.content}"
-                        </div>
-                        <div style={{ display: 'flex', gap: '12px' }}>
-                            <button
-                                onClick={() => approveItem(item.id)}
-                                style={{ flex: 1, padding: '10px', borderRadius: 'var(--radius-md)', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                            >
-                                <CheckCircle size={18} /> Keep
-                            </button>
-                            <button
-                                onClick={() => rejectItem(item.id)}
-                                style={{ flex: 1, padding: '10px', borderRadius: 'var(--radius-md)', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                            >
-                                <XCircle size={18} /> Delete
-                            </button>
-                        </div>
-                    </div>
-                ))}
-            </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 };
@@ -577,32 +655,67 @@ const AdminPage = () => {
     const handleDelete = (id) => { if (window.confirm('Delete this post?')) setPosts(posts.filter(p => p.id !== id)); };
     const { setDailyPost } = useCommunity();
 
-    const handleSavePost = (status) => {
-        const newPostData = {
-            id: editingId || Date.now(),
-            status,
-            date: formData.date,
-            title: formData.devotionalTitle || 'Untitled',
-            opens: formData.opens || 0,
-            prayers: formData.prayers || 0,
-            ...formData
-        };
+    const handleSavePost = async (status) => {
+        try {
+            const newPostData = {
+                id: editingId || Date.now(),
+                status,
+                date: formData.date,
+                title: formData.devotionalTitle || 'Untitled',
+                opens: formData.opens || 0,
+                prayers: formData.prayers || 0,
+                ...formData
+            };
 
-        if (editingId) setPosts(posts.map(p => p.id === editingId ? newPostData : p));
-        else setPosts([newPostData, ...posts]);
+            if (editingId) setPosts(posts.map(p => p.id === editingId ? newPostData : p));
+            else setPosts([newPostData, ...posts]);
 
-        if (status === 'published') {
-            setDailyPost({
-                adImage: formData.adImage,
-                adLink: formData.adLink,
-                showAd: formData.showAd,
-                adDuration: formData.adDuration || 5,
-                title: formData.devotionalTitle,
-                content: formData.devotionalContent
-            });
+            // Save to Firestore when publishing
+            if (status === 'published') {
+                await saveDailyContent({
+                    date: formData.date,
+                    verse: {
+                        text: formData.verseText || '',
+                        reference: formData.verseReference || ''
+                    },
+                    prayer: {
+                        text: formData.prayerText || '',
+                        audioUrl: formData.prayerAudio || ''
+                    },
+                    devotional: {
+                        title: formData.devotionalTitle || 'Daily Devotional',
+                        content: formData.devotionalContent || '',
+                        audioUrl: formData.devotionalAudio || ''
+                    },
+                    journalPrompts: [
+                        formData.prompt1 || '',
+                        formData.prompt2 || '',
+                        formData.prompt3 || ''
+                    ],
+                    ad: {
+                        imageUrl: formData.adImage || '',
+                        link: formData.adLink || '',
+                        show: formData.showAd || false,
+                        duration: formData.adDuration || 5
+                    }
+                });
+
+                // Update local context for immediate UI feedback
+                setDailyPost({
+                    adImage: formData.adImage,
+                    adLink: formData.adLink,
+                    showAd: formData.showAd,
+                    adDuration: formData.adDuration || 5,
+                    title: formData.devotionalTitle,
+                    content: formData.devotionalContent
+                });
+            }
+
+            setViewMode('list');
+        } catch (error) {
+            console.error('Error saving daily content:', error);
+            alert('Failed to save content. Please try again.');
         }
-
-        setViewMode('list');
     };
 
     const dashboardStats = [
