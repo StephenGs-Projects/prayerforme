@@ -864,12 +864,25 @@ const AdminPage = () => {
     const { setDailyPost } = useCommunity();
 
     const handleSavePost = async (status) => {
-        try {
-            if (!formData.date) {
-                alert('Please select a date for this content.');
+        // Validate required fields
+        if (!formData.date) {
+            alert('Please select a date for this content.');
+            return;
+        }
+
+        // Validate Ad content if toggle is ON
+        if (formData.showAd) {
+            if (!formData.adImage) {
+                alert('Ad Image is required when "Include Ad Today" is enabled.\n\nPlease upload an ad image or turn off the ad toggle.');
                 return;
             }
+            if (!formData.adLink || !formData.adLink.trim()) {
+                alert('Ad Destination Link is required when "Include Ad Today" is enabled.\n\nPlease provide a link or turn off the ad toggle.');
+                return;
+            }
+        }
 
+        try {
             const contentData = {
                 verse: {
                     text: formData.verseText || '',
@@ -941,7 +954,8 @@ const AdminPage = () => {
             setViewMode('list');
         } catch (error) {
             console.error('Error saving daily content:', error);
-            alert('Failed to save content. Please try again.');
+            console.error('Error details:', error.code, error.message);
+            alert(`Failed to save content: ${error.message}\n\nCheck console for details.`);
         }
     };
 
