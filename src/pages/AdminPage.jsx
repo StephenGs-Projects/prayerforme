@@ -873,22 +873,24 @@ const ModerationView = () => {
         fetchFlaggedRequests();
     }, []);
 
-    const handleApprove = async (requestId) => {
+    const handleApprove = async (flaggedId, originalRequestId) => {
         try {
-            await approveFlaggedRequest(requestId);
+            await approveFlaggedRequest(flaggedId, originalRequestId);
             // Remove from local state after approval
-            setFlaggedItems(flaggedItems.filter(item => item.id !== requestId));
+            setFlaggedItems(flaggedItems.filter(item => item.id !== flaggedId));
+            alert('Prayer request approved and restored to feed');
         } catch (error) {
             console.error('Error approving request:', error);
             alert('Failed to approve request. Please try again.');
         }
     };
 
-    const handleReject = async (requestId) => {
+    const handleReject = async (flaggedId, originalRequestId) => {
         try {
-            await rejectFlaggedRequest(requestId);
+            await rejectFlaggedRequest(flaggedId, originalRequestId);
             // Remove from local state after rejection
-            setFlaggedItems(flaggedItems.filter(item => item.id !== requestId));
+            setFlaggedItems(flaggedItems.filter(item => item.id !== flaggedId));
+            alert('Prayer request deleted permanently');
         } catch (error) {
             console.error('Error rejecting request:', error);
             alert('Failed to reject request. Please try again.');
@@ -932,10 +934,10 @@ const ModerationView = () => {
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
                                 <div style={{ display: 'flex', gap: '12px' }}>
                                     <span style={{ fontSize: '12px', padding: '4px 8px', borderRadius: '4px', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', fontWeight: 600 }}>
-                                        {item.flagReason || 'Flagged'}
+                                        {item.reason || 'Flagged'}
                                     </span>
                                     <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>
-                                        Reported by {item.flaggedBy || 'Anonymous'} • {formatTime(item.flaggedAt)}
+                                        Reported by {item.reporterUid || 'Anonymous'} • {formatTime(item.createdAt)}
                                     </span>
                                 </div>
                             </div>
@@ -944,13 +946,13 @@ const ModerationView = () => {
                             </div>
                             <div style={{ display: 'flex', gap: '12px' }}>
                                 <button
-                                    onClick={() => handleApprove(item.id)}
+                                    onClick={() => handleApprove(item.id, item.originalRequestId)}
                                     style={{ flex: 1, padding: '10px', borderRadius: 'var(--radius-md)', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
                                 >
                                     <CheckCircle size={18} /> Keep
                                 </button>
                                 <button
-                                    onClick={() => handleReject(item.id)}
+                                    onClick={() => handleReject(item.id, item.originalRequestId)}
                                     style={{ flex: 1, padding: '10px', borderRadius: 'var(--radius-md)', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
                                 >
                                     <XCircle size={18} /> Delete
