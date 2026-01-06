@@ -968,9 +968,36 @@ const ModerationView = () => {
 
 const AdminPage = () => {
     const navigate = useNavigate();
+    const { currentUser, userRole } = useAuth();
     const [activeTab, setActiveTab] = useState('dashboard'); // dashboard, content, users, moderation, settings
     const [viewMode, setViewMode] = useState('list'); // list, editor (for content tab)
     const [editingId, setEditingId] = useState(null);
+    const [isAuthorized, setIsAuthorized] = useState(false);
+    const [checkingAuth, setCheckingAuth] = useState(true);
+
+    // Check if user is admin
+    useEffect(() => {
+        const checkAdminAccess = () => {
+            if (!currentUser) {
+                // Not logged in, redirect to login
+                navigate('/login');
+                return;
+            }
+
+            if (userRole !== 'admin') {
+                // Not an admin, redirect to home
+                alert('Access Denied: You must be an admin to access this page.');
+                navigate('/');
+                return;
+            }
+
+            // User is admin
+            setIsAuthorized(true);
+            setCheckingAuth(false);
+        };
+
+        checkAdminAccess();
+    }, [currentUser, userRole, navigate]);
 
     // Bypass desktop restriction
     React.useEffect(() => {
@@ -1207,6 +1234,32 @@ const AdminPage = () => {
 
 
     // --- Render ---
+
+    // Show loading state while checking authorization
+    if (checkingAuth) {
+        return (
+            <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minHeight: '100vh',
+                background: 'var(--bg-app)'
+            }}>
+                <div style={{
+                    textAlign: 'center',
+                    color: 'var(--text-tertiary)',
+                    fontSize: '16px'
+                }}>
+                    <div style={{ marginBottom: '16px', fontSize: '18px' }}>Verifying admin access...</div>
+                </div>
+            </div>
+        );
+    }
+
+    // Don't render anything if not authorized (will redirect)
+    if (!isAuthorized) {
+        return null;
+    }
 
     const SidebarItem = ({ id, label, icon: Icon }) => (
         <button
