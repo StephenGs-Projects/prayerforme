@@ -75,8 +75,8 @@ When you see "Failed to load daily content", check the browser console. Firestor
 
 - ✅ Prayer Requests by Status (Index #2)
 - ✅ User Prayer Requests (Index #3)
-- ❌ **Daily Content Query (Index #1) - MISSING! This is causing the "Failed to load daily content" error**
-- ❓ Flagged Requests (Index #4) - Create when testing moderation
+- ✅ Daily Content Query (Index #1)
+- ❓ Flagged Requests (Index #4) - **Create if you see errors when viewing flagged content**
 
 ## How to Check Index Build Status
 
