@@ -209,7 +209,7 @@ const PrayerPage = () => {
                             color: 'var(--text-secondary)',
                             fontWeight: 300
                         }}>
-                            {dailyContent?.prayer || 'Lord, thank you for this new day. Help me to trust You with all my heart and lean not on my own understanding. Guide my steps and fill me with Your peace that surpasses all understanding. Amen.'}
+                            {dailyContent?.prayer?.text || 'Lord, thank you for this new day. Help me to trust You with all my heart and lean not on my own understanding. Guide my steps and fill me with Your peace that surpasses all understanding. Amen.'}
                         </p>
                     )}
                 </div>

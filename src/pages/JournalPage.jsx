@@ -1,23 +1,57 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowRight, Check } from 'lucide-react';
 import { useFlow } from '../context/FlowContext';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { saveJournalEntry } from '../firebase/firestore';
+import { saveJournalEntry, getDailyContent, getLatestDailyContent } from '../firebase/firestore';
 
 const JournalPage = () => {
     const [selectedPrompt, setSelectedPrompt] = useState(0);
     const [entry, setEntry] = useState('');
     const [saving, setSaving] = useState(false);
+    const [dailyContent, setDailyContent] = useState(null);
+    const [loading, setLoading] = useState(true);
     const { showNav } = useFlow();
     const { currentUser } = useAuth();
     const navigate = useNavigate();
 
-    const prompts = [
+    // Fetch daily content for journal prompts
+    useEffect(() => {
+        const fetchDailyContent = async () => {
+            try {
+                setLoading(true);
+
+                // Get today's date in YYYY-MM-DD format
+                const today = new Date().toISOString().split('T')[0];
+
+                // Try to get today's content first
+                let content = await getDailyContent(today);
+
+                // If no content for today, get the latest published content
+                if (!content) {
+                    content = await getLatestDailyContent();
+                }
+
+                setDailyContent(content);
+            } catch (err) {
+                console.error('Error fetching daily content:', err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchDailyContent();
+    }, []);
+
+    // Default prompts as fallback
+    const defaultPrompts = [
         "What are you grateful for today?",
         "Where did you see God work this week?",
         "What is burdening your heart right now?"
     ];
+
+    // Use Firestore prompts if available, otherwise use defaults
+    const prompts = dailyContent?.journalPrompts?.filter(p => p.trim()) || defaultPrompts;
 
     const handleComplete = async () => {
         // Save journal entry if user is logged in and has written something
@@ -72,7 +106,17 @@ const JournalPage = () => {
 
                 {/* Prompt Selector */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '32px' }}>
-                    {prompts.map((prompt, index) => {
+                    {loading ? (
+                        <p style={{
+                            fontSize: '14px',
+                            color: 'var(--text-tertiary)',
+                            fontStyle: 'italic',
+                            textAlign: 'center',
+                            padding: '20px'
+                        }}>
+                            Loading prompts...
+                        </p>
+                    ) : prompts.map((prompt, index) => {
                         const isSelected = selectedPrompt === index;
                         return (
                             <button

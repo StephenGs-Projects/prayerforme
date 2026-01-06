@@ -102,8 +102,8 @@ const DevotionalPage = () => {
                                     fontFamily: 'var(--font-sans)',
                                     letterSpacing: '-0.02em'
                                 }}>
-                                    {(dailyContent?.devotionalTitle || dailyPost.title || 'Daily Devotional').split(' ').slice(0, 2).join(' ')}<br />
-                                    {(dailyContent?.devotionalTitle || dailyPost.title || 'Daily Devotional').split(' ').slice(2).join(' ')}
+                                    {(dailyContent?.devotional?.title || dailyPost.title || 'Daily Devotional').split(' ').slice(0, 2).join(' ')}<br />
+                                    {(dailyContent?.devotional?.title || dailyPost.title || 'Daily Devotional').split(' ').slice(2).join(' ')}
                                 </h1>
 
                                 {/* Play Button */}
@@ -152,7 +152,7 @@ const DevotionalPage = () => {
                             fontWeight: 300,
                             whiteSpace: 'pre-wrap'
                         }}>
-                            {dailyContent?.devotionalText || dailyPost.content || 'No devotional content available for today.'}
+                            {dailyContent?.devotional?.content || dailyPost.content || 'No devotional content available for today.'}
                         </p>
                     )}
                 </div>
