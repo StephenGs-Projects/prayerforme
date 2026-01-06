@@ -126,6 +126,79 @@ export const deleteDailyContent = async (contentId) => {
   }
 };
 
+// ==================== USER MANAGEMENT ====================
+
+/**
+ * Get all users (Admin only)
+ * @returns {Promise<Array>} Array of user objects
+ */
+export const getAllUsers = async () => {
+  try {
+    const querySnapshot = await getDocs(collection(db, 'users'));
+
+    return querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+  } catch (error) {
+    console.error('Error getting all users:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update user role (Admin only)
+ * @param {string} userId - User ID
+ * @param {string} role - New role ('free', 'premium', 'admin')
+ * @returns {Promise<void>}
+ */
+export const updateUserRole = async (userId, role) => {
+  try {
+    const userRef = doc(db, 'users', userId);
+    await updateDoc(userRef, {
+      role: role
+    });
+  } catch (error) {
+    console.error('Error updating user role:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update user status (Admin only)
+ * @param {string} userId - User ID
+ * @param {string} status - New status ('active', 'suspended')
+ * @returns {Promise<void>}
+ */
+export const updateUserStatus = async (userId, status) => {
+  try {
+    const userRef = doc(db, 'users', userId);
+    await updateDoc(userRef, {
+      status: status
+    });
+  } catch (error) {
+    console.error('Error updating user status:', error);
+    throw error;
+  }
+};
+
+/**
+ * Delete user account (Admin only)
+ * @param {string} userId - User ID
+ * @returns {Promise<void>}
+ */
+export const deleteUser = async (userId) => {
+  try {
+    // Note: This only deletes the user document from Firestore
+    // Firebase Auth user deletion requires server-side Admin SDK
+    const userRef = doc(db, 'users', userId);
+    await deleteDoc(userRef);
+  } catch (error) {
+    console.error('Error deleting user:', error);
+    throw error;
+  }
+};
+
 // ==================== JOURNAL ENTRIES ====================
 
 /**
@@ -554,6 +627,12 @@ export default {
   saveDailyContent,
   getAllDailyContent,
   deleteDailyContent,
+
+  // User Management
+  getAllUsers,
+  updateUserRole,
+  updateUserStatus,
+  deleteUser,
 
   // Journal
   saveJournalEntry,

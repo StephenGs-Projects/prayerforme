@@ -11,7 +11,11 @@ import {
     addComment,
     getFlaggedRequests,
     approveFlaggedRequest,
-    rejectFlaggedRequest
+    rejectFlaggedRequest,
+    getAllUsers,
+    updateUserRole,
+    updateUserStatus,
+    deleteUser
 } from '../firebase/firestore';
 import {
     ChevronLeft, Plus, Calendar, Save, Send, Pencil, Trash2, Bold, Italic, List, Music, Upload,
@@ -425,62 +429,240 @@ const ContentView = ({ posts, loading, onEdit, onDelete, onCreate }) => (
     </div>
 );
 
-const UsersView = ({ users }) => (
-    <div className="fade-in">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
-            <h2 style={{ fontSize: '24px' }}>User Management</h2>
-            <div className="glass" style={{ padding: '8px 16px', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', gap: '8px', width: '300px' }}>
-                <Search size={18} color="var(--text-tertiary)" />
-                <input type="text" placeholder="Search users..." style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', width: '100%', outline: 'none' }} />
-            </div>
-        </div>
+const UsersView = () => {
+    const [users, setUsers] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [actionMenuOpen, setActionMenuOpen] = useState(null);
 
-        <div className="glass" style={{ borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                <thead style={{ background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                    <tr>
-                        <th style={{ padding: '16px', fontSize: '12px', color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>User</th>
-                        <th style={{ padding: '16px', fontSize: '12px', color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>Role</th>
-                        <th style={{ padding: '16px', fontSize: '12px', color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>Status</th>
-                        <th style={{ padding: '16px', fontSize: '12px', color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>Joined</th>
-                        <th style={{ padding: '16px', fontSize: '12px', color: 'var(--text-tertiary)', textTransform: 'uppercase', textAlign: 'right' }}>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {users.map(user => (
-                        <tr key={user.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                            <td style={{ padding: '16px' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--bg-surface-active)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: 'var(--accent-cyan)' }}>
-                                        {user.name.charAt(0)}
-                                    </div>
-                                    <div>
-                                        <div style={{ fontSize: '14px', fontWeight: 500 }}>{user.name}</div>
-                                        <div style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>{user.email}</div>
-                                    </div>
-                                </div>
-                            </td>
-                            <td style={{ padding: '16px' }}>
-                                <span style={{ fontSize: '12px', fontWeight: 500, color: user.role === 'Premium' ? 'var(--accent-pink)' : 'var(--text-secondary)' }}>
-                                    {user.role}
-                                </span>
-                            </td>
-                            <td style={{ padding: '16px' }}>
-                                <span style={{ fontSize: '12px', padding: '4px 8px', borderRadius: '12px', background: user.status === 'Active' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)', color: user.status === 'Active' ? '#10b981' : '#ef4444' }}>
-                                    {user.status}
-                                </span>
-                            </td>
-                            <td style={{ padding: '16px', fontSize: '14px', color: 'var(--text-secondary)' }}>{user.joined}</td>
-                            <td style={{ padding: '16px', textAlign: 'right' }}>
-                                <button style={{ color: 'var(--text-tertiary)' }}><MoreVertical size={18} /></button>
-                            </td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
+    useEffect(() => {
+        const fetchUsers = async () => {
+            try {
+                setLoading(true);
+                const allUsers = await getAllUsers();
+                setUsers(allUsers);
+            } catch (error) {
+                console.error('Error fetching users:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchUsers();
+    }, []);
+
+    const formatDate = (timestamp) => {
+        if (!timestamp) return 'Unknown';
+        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+        return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    };
+
+    const handleRoleChange = async (userId, newRole) => {
+        try {
+            await updateUserRole(userId, newRole);
+            setUsers(users.map(u => u.id === userId ? { ...u, role: newRole } : u));
+            setActionMenuOpen(null);
+            alert(`User role updated to ${newRole}`);
+        } catch (error) {
+            console.error('Error updating role:', error);
+            alert(`Failed to update role: ${error.message}`);
+        }
+    };
+
+    const handleStatusToggle = async (userId, currentStatus) => {
+        const newStatus = currentStatus === 'active' ? 'suspended' : 'active';
+        try {
+            await updateUserStatus(userId, newStatus);
+            setUsers(users.map(u => u.id === userId ? { ...u, status: newStatus } : u));
+            setActionMenuOpen(null);
+            alert(`User ${newStatus === 'suspended' ? 'suspended' : 'activated'} successfully`);
+        } catch (error) {
+            console.error('Error updating status:', error);
+            alert(`Failed to update status: ${error.message}`);
+        }
+    };
+
+    const handleDeleteUser = async (userId, userEmail) => {
+        if (!window.confirm(`Are you sure you want to delete user ${userEmail}?\n\nThis will remove their Firestore data but not their Firebase Auth account.`)) {
+            return;
+        }
+
+        try {
+            await deleteUser(userId);
+            setUsers(users.filter(u => u.id !== userId));
+            setActionMenuOpen(null);
+            alert('User deleted successfully');
+        } catch (error) {
+            console.error('Error deleting user:', error);
+            alert(`Failed to delete user: ${error.message}`);
+        }
+    };
+
+    const filteredUsers = users.filter(user => {
+        const query = searchQuery.toLowerCase();
+        return (
+            (user.displayName?.toLowerCase() || '').includes(query) ||
+            (user.email?.toLowerCase() || '').includes(query)
+        );
+    });
+
+    return (
+        <div className="fade-in">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
+                <h2 style={{ fontSize: '24px' }}>User Management</h2>
+                <div className="glass" style={{ padding: '8px 16px', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', gap: '8px', width: '300px' }}>
+                    <Search size={18} color="var(--text-tertiary)" />
+                    <input
+                        type="text"
+                        placeholder="Search users..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', width: '100%', outline: 'none' }}
+                    />
+                </div>
+            </div>
+
+            {loading ? (
+                <div style={{
+                    textAlign: 'center',
+                    padding: '48px',
+                    color: 'var(--text-tertiary)',
+                    fontSize: '16px',
+                    fontStyle: 'italic'
+                }}>
+                    Loading users...
+                </div>
+            ) : (
+                <div className="glass" style={{ borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                        <thead style={{ background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                            <tr>
+                                <th style={{ padding: '16px', fontSize: '12px', color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>User</th>
+                                <th style={{ padding: '16px', fontSize: '12px', color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>Role</th>
+                                <th style={{ padding: '16px', fontSize: '12px', color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>Status</th>
+                                <th style={{ padding: '16px', fontSize: '12px', color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>Joined</th>
+                                <th style={{ padding: '16px', fontSize: '12px', color: 'var(--text-tertiary)', textTransform: 'uppercase', textAlign: 'right' }}>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {filteredUsers.length === 0 ? (
+                                <tr>
+                                    <td colSpan="5" style={{ padding: '48px', textAlign: 'center', color: 'var(--text-tertiary)' }}>
+                                        No users found
+                                    </td>
+                                </tr>
+                            ) : filteredUsers.map(user => (
+                                <tr key={user.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                                    <td style={{ padding: '16px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--bg-surface-active)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: 'var(--accent-cyan)' }}>
+                                                {(user.displayName || user.email || 'U').charAt(0).toUpperCase()}
+                                            </div>
+                                            <div>
+                                                <div style={{ fontSize: '14px', fontWeight: 500 }}>{user.displayName || 'Anonymous'}</div>
+                                                <div style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>{user.email || 'No email'}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td style={{ padding: '16px' }}>
+                                        <span style={{ fontSize: '12px', fontWeight: 500, color: user.role === 'premium' ? 'var(--accent-pink)' : user.role === 'admin' ? 'var(--accent-cyan)' : 'var(--text-secondary)', textTransform: 'capitalize' }}>
+                                            {user.role || 'free'}
+                                        </span>
+                                    </td>
+                                    <td style={{ padding: '16px' }}>
+                                        <span style={{ fontSize: '12px', padding: '4px 8px', borderRadius: '12px', background: (user.status === 'active' || !user.status) ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)', color: (user.status === 'active' || !user.status) ? '#10b981' : '#ef4444', textTransform: 'capitalize' }}>
+                                            {user.status || 'active'}
+                                        </span>
+                                    </td>
+                                    <td style={{ padding: '16px', fontSize: '14px', color: 'var(--text-secondary)' }}>{formatDate(user.createdAt)}</td>
+                                    <td style={{ padding: '16px', textAlign: 'right', position: 'relative' }}>
+                                        <button
+                                            onClick={() => setActionMenuOpen(actionMenuOpen === user.id ? null : user.id)}
+                                            style={{ color: 'var(--text-tertiary)', position: 'relative' }}
+                                        >
+                                            <MoreVertical size={18} />
+                                        </button>
+                                        {actionMenuOpen === user.id && (
+                                            <div style={{
+                                                position: 'absolute',
+                                                right: '16px',
+                                                top: '40px',
+                                                background: 'var(--bg-surface)',
+                                                border: '1px solid var(--border-surface)',
+                                                borderRadius: 'var(--radius-md)',
+                                                padding: '8px',
+                                                zIndex: 100,
+                                                minWidth: '180px',
+                                                boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+                                            }}>
+                                                <div style={{ padding: '8px 12px', fontSize: '12px', color: 'var(--text-tertiary)', textTransform: 'uppercase', fontWeight: 600 }}>
+                                                    Change Role
+                                                </div>
+                                                {['free', 'premium', 'admin'].map(role => (
+                                                    <button
+                                                        key={role}
+                                                        onClick={() => handleRoleChange(user.id, role)}
+                                                        disabled={user.role === role}
+                                                        style={{
+                                                            width: '100%',
+                                                            padding: '8px 12px',
+                                                            textAlign: 'left',
+                                                            borderRadius: '4px',
+                                                            background: user.role === role ? 'rgba(255,255,255,0.05)' : 'transparent',
+                                                            color: user.role === role ? 'var(--text-tertiary)' : 'var(--text-primary)',
+                                                            fontSize: '14px',
+                                                            textTransform: 'capitalize',
+                                                            cursor: user.role === role ? 'not-allowed' : 'pointer',
+                                                            opacity: user.role === role ? 0.5 : 1
+                                                        }}
+                                                    >
+                                                        {role}
+                                                    </button>
+                                                ))}
+                                                <div style={{ height: '1px', background: 'var(--border-surface)', margin: '8px 0' }} />
+                                                <button
+                                                    onClick={() => handleStatusToggle(user.id, user.status || 'active')}
+                                                    style={{
+                                                        width: '100%',
+                                                        padding: '8px 12px',
+                                                        textAlign: 'left',
+                                                        borderRadius: '4px',
+                                                        background: 'transparent',
+                                                        color: (user.status === 'suspended') ? '#10b981' : '#f59e0b',
+                                                        fontSize: '14px',
+                                                        cursor: 'pointer'
+                                                    }}
+                                                >
+                                                    {(user.status === 'suspended') ? 'Activate User' : 'Suspend User'}
+                                                </button>
+                                                <div style={{ height: '1px', background: 'var(--border-surface)', margin: '8px 0' }} />
+                                                <button
+                                                    onClick={() => handleDeleteUser(user.id, user.email)}
+                                                    style={{
+                                                        width: '100%',
+                                                        padding: '8px 12px',
+                                                        textAlign: 'left',
+                                                        borderRadius: '4px',
+                                                        background: 'transparent',
+                                                        color: '#ef4444',
+                                                        fontSize: '14px',
+                                                        cursor: 'pointer'
+                                                    }}
+                                                >
+                                                    Delete User
+                                                </button>
+                                            </div>
+                                        )}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
         </div>
-    </div>
-);
+    );
+};
 
 const PrayersView = () => {
     const { currentUser } = useAuth();
@@ -1005,17 +1187,6 @@ const AdminPage = () => {
         }
     };
 
-    const dummyUsers = [
-        { id: 1, name: 'Sarah M.', email: 'sarah@example.com', role: 'Premium', status: 'Active', joined: 'Jan 2025' },
-        { id: 2, name: 'David K.', email: 'david@example.com', role: 'Free', status: 'Active', joined: 'Dec 2024' },
-        { id: 3, name: 'Troll User', email: 'troll@example.com', role: 'Free', status: 'Suspended', joined: 'Jan 2026' },
-    ];
-
-    const dummyFlagged = [
-        { id: 1, content: "This is spam content...", reporter: 'John D.', time: '2h ago', reason: 'Spam' },
-        { id: 2, content: "Inappropriate language here...", reporter: 'Emily W.', time: '5h ago', reason: 'Harassment' },
-        { id: 3, content: "Buy my crypto!", reporter: 'Mike T.', time: '1d ago', reason: 'Spam' },
-    ];
 
     // --- Render ---
 
@@ -1074,7 +1245,7 @@ const AdminPage = () => {
 
                 {activeTab === 'prayers' && <PrayersView />}
 
-                {activeTab === 'users' && <UsersView users={dummyUsers} />}
+                {activeTab === 'users' && <UsersView />}
 
                 {activeTab === 'moderation' && <ModerationView />}
 
