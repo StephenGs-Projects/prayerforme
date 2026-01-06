@@ -261,7 +261,7 @@ const AnalyticsGraph = () => {
     );
 };
 
-const Overview = ({ dashboardStats, posts }) => {
+const Overview = ({ dashboardStats, posts, loading }) => {
     const recentPublished = (posts || [])
         .filter(p => p.status === 'published')
         .sort((a, b) => new Date(b.date) - new Date(a.date))
@@ -272,22 +272,35 @@ const Overview = ({ dashboardStats, posts }) => {
             <h2 style={{ fontSize: '24px', marginBottom: '24px' }}>Dashboard Overview</h2>
 
             {/* Stats Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px', marginBottom: '32px' }}>
-                {dashboardStats.map((stat, index) => (
-                    <div key={index} className="glass" style={{ padding: '24px', borderRadius: 'var(--radius-lg)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-                            <div style={{ padding: '8px', borderRadius: '50%', background: 'var(--bg-surface-active)', color: 'var(--accent-cyan)', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                <stat.icon size={18} />
+            {loading ? (
+                <div style={{
+                    textAlign: 'center',
+                    padding: '48px',
+                    color: 'var(--text-tertiary)',
+                    fontSize: '16px',
+                    fontStyle: 'italic',
+                    marginBottom: '32px'
+                }}>
+                    Loading statistics...
+                </div>
+            ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px', marginBottom: '32px' }}>
+                    {dashboardStats.map((stat, index) => (
+                        <div key={index} className="glass" style={{ padding: '24px', borderRadius: 'var(--radius-lg)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+                                <div style={{ padding: '8px', borderRadius: '50%', background: 'var(--bg-surface-active)', color: 'var(--accent-cyan)', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <stat.icon size={18} />
+                                </div>
+                                {stat.trend && <span style={{ fontSize: '12px', fontWeight: 600, color: '#10b981' }}>{stat.trend}</span>}
                             </div>
-                            <span style={{ fontSize: '12px', fontWeight: 600, color: '#10b981' }}>{stat.trend}</span>
+                            <div>
+                                <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '4px' }}>{stat.label}</p>
+                                <h3 style={{ fontSize: '28px', fontWeight: 700 }}>{stat.value}</h3>
+                            </div>
                         </div>
-                        <div>
-                            <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '4px' }}>{stat.label}</p>
-                            <h3 style={{ fontSize: '28px', fontWeight: 700 }}>{stat.value}</h3>
-                        </div>
-                    </div>
-                ))}
-            </div>
+                    ))}
+                </div>
+            )}
 
             {/* Analytics Graph */}
             <AnalyticsGraph />
@@ -768,6 +781,37 @@ const AdminPage = () => {
 
     const [posts, setPosts] = useState([]);
     const [loadingPosts, setLoadingPosts] = useState(true);
+    const [dashboardStats, setDashboardStats] = useState([]);
+    const [loadingStats, setLoadingStats] = useState(true);
+
+    // Fetch dashboard statistics
+    useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                setLoadingStats(true);
+                const prayerRequests = await getPrayerRequests();
+
+                // Calculate statistics
+                const totalRequests = prayerRequests.length;
+                const totalPrayers = prayerRequests.reduce((sum, req) => sum + (req.prayedCount || 0), 0);
+                const totalComments = prayerRequests.reduce((sum, req) => sum + (req.commentCount || 0), 0);
+                const avgPrayersPerRequest = totalRequests > 0 ? Math.round(totalPrayers / totalRequests) : 0;
+
+                setDashboardStats([
+                    { label: 'Prayer Requests', value: totalRequests.toString(), icon: MessageCircle },
+                    { label: 'Total Prayers', value: totalPrayers.toString(), icon: CheckCircle },
+                    { label: 'Avg Prayers/Request', value: avgPrayersPerRequest.toString(), icon: ShieldCheck },
+                    { label: 'Total Comments', value: totalComments.toString(), icon: FileText },
+                ]);
+            } catch (error) {
+                console.error('Error fetching dashboard stats:', error);
+            } finally {
+                setLoadingStats(false);
+            }
+        };
+
+        fetchStats();
+    }, []);
 
     // Fetch all daily content on mount
     useEffect(() => {
@@ -901,13 +945,6 @@ const AdminPage = () => {
         }
     };
 
-    const dashboardStats = [
-        { label: 'Total Users', value: '1,284', trend: '+12% this month', icon: Users },
-        { label: 'Premium Users', value: '412', trend: '32% of total', icon: ShieldCheck },
-        { label: 'Engagement Rate', value: '62%', trend: '+4% vs avg', icon: CheckCircle },
-        { label: 'Today\'s Prayers', value: '342', trend: '+15% from avg', icon: FileText },
-    ];
-
     const dummyUsers = [
         { id: 1, name: 'Sarah M.', email: 'sarah@example.com', role: 'Premium', status: 'Active', joined: 'Jan 2025' },
         { id: 2, name: 'David K.', email: 'david@example.com', role: 'Free', status: 'Active', joined: 'Dec 2024' },
@@ -973,7 +1010,7 @@ const AdminPage = () => {
             {/* Main Content Area */}
             <div style={{ marginLeft: '280px', flex: 1, padding: '40px', maxWidth: '1200px' }}>
 
-                {activeTab === 'dashboard' && <Overview dashboardStats={dashboardStats} posts={posts} />}
+                {activeTab === 'dashboard' && <Overview dashboardStats={dashboardStats} posts={posts} loading={loadingStats} />}
 
                 {activeTab === 'prayers' && <PrayersView />}
 
