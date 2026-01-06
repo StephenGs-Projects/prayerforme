@@ -1,0 +1,119 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper function to check if user is admin
+    function isAdmin() {
+      return isAuthenticated() &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Helper function to check if user is premium
+    function isPremium() {
+      return isAuthenticated() &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'premium';
+    }
+
+    // Helper function to check if user owns the resource
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Users collection
+    match /users/{userId} {
+      // Users can read their own document, admins can read all
+      allow read: if isOwner(userId) || isAdmin();
+
+      // Users can create their own document on signup
+      allow create: if isOwner(userId);
+
+      // Users can update their own document, admins can update all
+      allow update: if isOwner(userId) || isAdmin();
+
+      // Only admins can delete users
+      allow delete: if isAdmin();
+
+      // Journal entries subcollection
+      match /journalEntries/{entryId} {
+        // Users can read/write their own journal entries
+        allow read, write: if isOwner(userId);
+
+        // Admins can read all journal entries
+        allow read: if isAdmin();
+      }
+    }
+
+    // Daily content collection
+    match /dailyContent/{contentId} {
+      // Everyone (authenticated) can read published content
+      allow read: if isAuthenticated() && resource.data.published == true;
+
+      // Admins can read all content (including drafts)
+      allow read: if isAdmin();
+
+      // Only admins can create, update, or delete daily content
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Prayer requests collection
+    match /prayerRequests/{requestId} {
+      // Everyone can read approved prayer requests
+      allow read: if isAuthenticated() && resource.data.status == 'approved';
+
+      // Admins can read all prayer requests
+      allow read: if isAdmin();
+
+      // Authenticated users can create prayer requests
+      allow create: if isAuthenticated() &&
+                       request.resource.data.userId == request.auth.uid &&
+                       request.resource.data.status == 'approved';
+
+      // Users can update their own prayer requests, admins can update all
+      allow update: if isOwner(resource.data.userId) || isAdmin();
+
+      // Users can delete their own requests, admins can delete all
+      allow delete: if isOwner(resource.data.userId) || isAdmin();
+
+      // Comments subcollection
+      match /comments/{commentId} {
+        // Everyone can read comments on approved prayer requests
+        allow read: if isAuthenticated();
+
+        // Authenticated users can create comments
+        allow create: if isAuthenticated() &&
+                         request.resource.data.userId == request.auth.uid;
+
+        // Users can update/delete their own comments, admins can manage all
+        allow update, delete: if isOwner(resource.data.userId) || isAdmin();
+      }
+
+      // Prayed by subcollection (tracks who prayed for a request)
+      match /prayedBy/{userId} {
+        // Users can read who prayed
+        allow read: if isAuthenticated();
+
+        // Users can track their own prayer
+        allow create, delete: if isOwner(userId);
+      }
+    }
+
+    // Flagged requests collection
+    match /flaggedRequests/{flagId} {
+      // Only admins can read flagged content
+      allow read: if isAdmin();
+
+      // Authenticated users can flag content
+      allow create: if isAuthenticated() &&
+                       request.resource.data.reporterUid == request.auth.uid;
+
+      // Only admins can update or delete flagged content
+      allow update, delete: if isAdmin();
+    }
+  }
+}

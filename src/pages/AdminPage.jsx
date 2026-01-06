@@ -955,7 +955,33 @@ const AdminPage = () => {
         } catch (error) {
             console.error('Error saving daily content:', error);
             console.error('Error details:', error.code, error.message);
-            alert(`Failed to save content: ${error.message}\n\nCheck console for details.`);
+
+            // Create detailed error message
+            let errorMessage = 'Failed to save content\n\n';
+
+            if (error.code === 'permission-denied') {
+                errorMessage += '❌ Permission Denied\n\n';
+                errorMessage += 'Your account may not have admin permissions.\n\n';
+                errorMessage += 'Troubleshooting:\n';
+                errorMessage += '1. Check your role in Firestore: users/{uid}/role should be "admin"\n';
+                errorMessage += '2. Firestore security rules may need updating\n';
+                errorMessage += '3. Try signing out and signing back in\n\n';
+                errorMessage += `Technical details: ${error.message}`;
+            } else if (error.code === 'unauthenticated') {
+                errorMessage += '❌ Not Authenticated\n\n';
+                errorMessage += 'You are not signed in or your session has expired.\n\n';
+                errorMessage += 'Please sign out and sign back in.';
+            } else if (error.code === 'unavailable') {
+                errorMessage += '❌ Network Error\n\n';
+                errorMessage += 'Could not connect to Firestore.\n\n';
+                errorMessage += 'Check your internet connection and try again.';
+            } else {
+                errorMessage += `❌ ${error.code || 'Unknown Error'}\n\n`;
+                errorMessage += `${error.message}\n\n`;
+                errorMessage += 'Check the browser console for more details.';
+            }
+
+            alert(errorMessage);
         }
     };
 
