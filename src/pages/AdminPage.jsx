@@ -5,6 +5,8 @@ import { useAuth } from '../context/AuthContext';
 import {
     saveDailyContent,
     getDailyContent,
+    getPrayerRequests,
+    addComment,
     getFlaggedRequests,
     approveFlaggedRequest,
     rejectFlaggedRequest
@@ -445,15 +447,70 @@ const UsersView = ({ users }) => (
 );
 
 const PrayersView = () => {
-    const { feedItems } = useCommunity();
+    const { currentUser } = useAuth();
+    const [prayerRequests, setPrayerRequests] = useState([]);
     const [comments, setComments] = useState({});
+    const [loading, setLoading] = useState(true);
+    const [submitting, setSubmitting] = useState({});
 
-    const handleComment = (id) => {
-        const comment = comments[id];
-        if (!comment?.trim()) return;
-        // In a real app, this would dispatch an action or API call
-        alert(`Admin reply sent to prayer request #${id}`);
-        setComments({ ...comments, [id]: '' });
+    useEffect(() => {
+        const fetchPrayerRequests = async () => {
+            try {
+                setLoading(true);
+                const requests = await getPrayerRequests();
+                setPrayerRequests(requests);
+            } catch (error) {
+                console.error('Error fetching prayer requests:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchPrayerRequests();
+    }, []);
+
+    const handleComment = async (requestId) => {
+        const comment = comments[requestId];
+        if (!comment?.trim() || !currentUser) return;
+
+        try {
+            setSubmitting({ ...submitting, [requestId]: true });
+
+            await addComment(requestId, {
+                userId: currentUser.uid,
+                userName: currentUser.displayName || 'Admin',
+                content: comment.trim()
+            });
+
+            setComments({ ...comments, [requestId]: '' });
+            alert('Reply sent successfully!');
+        } catch (error) {
+            console.error('Error sending reply:', error);
+            alert('Failed to send reply. Please try again.');
+        } finally {
+            setSubmitting({ ...submitting, [requestId]: false });
+        }
+    };
+
+    const formatTime = (timestamp) => {
+        if (!timestamp) return '';
+        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+        const now = new Date();
+        const diffMs = now - date;
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMins / 60);
+        const diffDays = Math.floor(diffHours / 24);
+
+        if (diffMins < 1) return 'just now';
+        if (diffMins < 60) return `${diffMins}m ago`;
+        if (diffHours < 24) return `${diffHours}h ago`;
+        return `${diffDays}d ago`;
+    };
+
+    const getAvatarColor = (name) => {
+        const colors = ['var(--accent-cyan)', 'var(--accent-pink)', '#10b981', '#f59e0b', '#8b5cf6'];
+        const hash = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+        return colors[hash % colors.length];
     };
 
     return (
@@ -463,53 +520,99 @@ const PrayersView = () => {
                 <p style={{ color: 'var(--text-tertiary)' }}>Monitor and engage with requests from the community feed.</p>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                {feedItems.map(item => (
-                    <div key={item.id} className="glass" style={{ padding: '24px', borderRadius: 'var(--radius-lg)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--bg-surface-active)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: 'var(--accent-cyan)' }}>
-                                    {item.name.charAt(0)}
+            {loading ? (
+                <div style={{
+                    textAlign: 'center',
+                    padding: '48px',
+                    color: 'var(--text-tertiary)',
+                    fontSize: '16px',
+                    fontStyle: 'italic'
+                }}>
+                    Loading prayer requests...
+                </div>
+            ) : prayerRequests.length === 0 ? (
+                <div style={{
+                    textAlign: 'center',
+                    padding: '48px',
+                    color: 'var(--text-tertiary)',
+                    fontSize: '16px'
+                }}>
+                    No prayer requests yet.
+                </div>
+            ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                    {prayerRequests.map(item => (
+                        <div key={item.id} className="glass" style={{ padding: '24px', borderRadius: 'var(--radius-lg)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                    <div style={{
+                                        width: '40px',
+                                        height: '40px',
+                                        borderRadius: '50%',
+                                        background: getAvatarColor(item.userName || 'Anonymous'),
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontWeight: 'bold',
+                                        color: '#fff'
+                                    }}>
+                                        {(item.userName || 'A').charAt(0).toUpperCase()}
+                                    </div>
+                                    <div>
+                                        <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                                            {item.userName || 'Anonymous'}
+                                        </div>
+                                        <div style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>
+                                            {formatTime(item.createdAt)}
+                                        </div>
+                                    </div>
                                 </div>
-                                <div>
-                                    <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{item.name}</div>
-                                    <div style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>{item.time}</div>
+                                <div style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>
+                                    {item.prayedCount || 0} prayers • {item.commentCount || 0} comments
                                 </div>
                             </div>
-                        </div>
-                        <p style={{ fontSize: '15px', color: 'var(--text-primary)', lineHeight: 1.6, marginBottom: '20px', whiteSpace: 'pre-wrap' }}>
-                            {item.content}
-                        </p>
+                            <p style={{ fontSize: '15px', color: 'var(--text-primary)', lineHeight: 1.6, marginBottom: '20px', whiteSpace: 'pre-wrap' }}>
+                                {item.content}
+                            </p>
 
-                        <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '20px' }}>
-                            <div style={{ display: 'flex', gap: '12px' }}>
-                                <textarea
-                                    placeholder="Write a supportive reply..."
-                                    className="glass"
-                                    value={comments[item.id] || ''}
-                                    onChange={(e) => setComments({ ...comments, [item.id]: e.target.value })}
-                                    onInput={(e) => {
-                                        e.target.style.height = 'auto';
-                                        e.target.style.height = e.target.scrollHeight + 'px';
-                                    }}
-                                    style={{
-                                        flex: 1, padding: '12px 16px', borderRadius: 'var(--radius-md)',
-                                        border: 'none', color: 'var(--text-primary)', outline: 'none',
-                                        resize: 'none', minHeight: '44px', maxHeight: '150px',
-                                        fontFamily: 'inherit', fontSize: '14px', lineHeight: '1.5'
-                                    }}
-                                />
-                                <button
-                                    onClick={() => handleComment(item.id)}
-                                    style={{ padding: '12px 24px', borderRadius: 'var(--radius-md)', background: 'var(--accent-cyan)', color: '#000', fontWeight: 700, cursor: 'pointer' }}
-                                >
-                                    Reply
-                                </button>
+                            <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '20px' }}>
+                                <div style={{ display: 'flex', gap: '12px' }}>
+                                    <textarea
+                                        placeholder="Write a supportive reply..."
+                                        className="glass"
+                                        value={comments[item.id] || ''}
+                                        onChange={(e) => setComments({ ...comments, [item.id]: e.target.value })}
+                                        onInput={(e) => {
+                                            e.target.style.height = 'auto';
+                                            e.target.style.height = e.target.scrollHeight + 'px';
+                                        }}
+                                        style={{
+                                            flex: 1, padding: '12px 16px', borderRadius: 'var(--radius-md)',
+                                            border: 'none', color: 'var(--text-primary)', outline: 'none',
+                                            resize: 'none', minHeight: '44px', maxHeight: '150px',
+                                            fontFamily: 'inherit', fontSize: '14px', lineHeight: '1.5'
+                                        }}
+                                    />
+                                    <button
+                                        onClick={() => handleComment(item.id)}
+                                        disabled={submitting[item.id]}
+                                        style={{
+                                            padding: '12px 24px',
+                                            borderRadius: 'var(--radius-md)',
+                                            background: submitting[item.id] ? 'var(--bg-surface-active)' : 'var(--accent-cyan)',
+                                            color: submitting[item.id] ? 'var(--text-tertiary)' : '#000',
+                                            fontWeight: 700,
+                                            cursor: submitting[item.id] ? 'not-allowed' : 'pointer'
+                                        }}
+                                    >
+                                        {submitting[item.id] ? 'Sending...' : 'Reply'}
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                ))}
-            </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 };
