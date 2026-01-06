@@ -6,6 +6,7 @@ import {
     saveDailyContent,
     getDailyContent,
     getAllDailyContent,
+    deleteDailyContent,
     getPrayerRequests,
     addComment,
     getFlaggedRequests,
@@ -860,7 +861,26 @@ const AdminPage = () => {
 
     const handleCreateNew = () => { setEditingId(null); setFormData(initialForm); setViewMode('editor'); };
     const handleEdit = (post) => { setEditingId(post.id); setFormData({ ...initialForm, ...post, title: post.devotionalTitle || post.title }); setViewMode('editor'); };
-    const handleDelete = (id) => { if (window.confirm('Delete this post?')) setPosts(posts.filter(p => p.id !== id)); };
+
+    const handleDelete = async (id) => {
+        if (!window.confirm('Are you sure you want to delete this daily content entry?\n\nThis action cannot be undone.')) {
+            return;
+        }
+
+        try {
+            // Delete from Firestore
+            await deleteDailyContent(id);
+
+            // Update local state
+            setPosts(posts.filter(p => p.id !== id));
+
+            alert('Daily content deleted successfully!');
+        } catch (error) {
+            console.error('Error deleting daily content:', error);
+            alert(`Failed to delete content: ${error.message}`);
+        }
+    };
+
     const { setDailyPost } = useCommunity();
 
     const handleSavePost = async (status) => {

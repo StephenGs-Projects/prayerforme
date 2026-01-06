@@ -111,6 +111,21 @@ export const getAllDailyContent = async () => {
   }
 };
 
+/**
+ * Delete daily content entry (Admin only)
+ * @param {string} contentId - Content ID (date in YYYY-MM-DD format)
+ * @returns {Promise<void>}
+ */
+export const deleteDailyContent = async (contentId) => {
+  try {
+    const docRef = doc(db, 'dailyContent', contentId);
+    await deleteDoc(docRef);
+  } catch (error) {
+    console.error('Error deleting daily content:', error);
+    throw error;
+  }
+};
+
 // ==================== JOURNAL ENTRIES ====================
 
 /**
@@ -537,6 +552,8 @@ export default {
   getDailyContent,
   getLatestDailyContent,
   saveDailyContent,
+  getAllDailyContent,
+  deleteDailyContent,
 
   // Journal
   saveJournalEntry,
