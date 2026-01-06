@@ -1,6 +1,6 @@
-# Firestore Security Rules Deployment Guide
+# Firebase Security Rules Deployment Guide
 
-This guide will help you deploy the Firestore security rules to fix the permission errors.
+This guide will help you deploy the Firestore and Storage security rules.
 
 ## Option 1: Deploy via Firebase CLI (Recommended)
 
@@ -17,19 +17,24 @@ This guide will help you deploy the Firestore security rules to fix the permissi
 
 3. Initialize Firebase in your project (if not already done):
    ```bash
-   firebase init firestore
+   firebase init firestore storage
    ```
    - Select your Firebase project
    - Accept the default `firestore.rules` file
    - Accept the default `firestore.indexes.json` file
+   - Accept the default `storage.rules` file
 
-### Deploy the Rules
-Run this command from your project root:
+### Deploy All Rules
+Run this command from your project root to deploy both Firestore and Storage rules:
 ```bash
-firebase deploy --only firestore:rules
+firebase deploy --only firestore:rules,storage:rules
 ```
 
-This will deploy the `firestore.rules` file to your Firebase project.
+Or deploy them individually:
+```bash
+firebase deploy --only firestore:rules
+firebase deploy --only storage:rules
+```
 
 ## Option 2: Deploy via Firebase Console (Alternative)
 

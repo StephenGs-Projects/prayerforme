@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ChevronLeft, LogOut, Trash2, Camera, CreditCard, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { uploadProfileImage } from '../firebase/storage';
 
 const SettingsPage = () => {
     const navigate = useNavigate();
@@ -14,6 +15,9 @@ const SettingsPage = () => {
         newPassword: '',
         profileImage: null
     });
+
+    const [profileImageFile, setProfileImageFile] = useState(null); // Store the actual File object
+    const [profileImagePreview, setProfileImagePreview] = useState(null); // Store preview URL
 
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState({ type: '', text: '' });
@@ -30,15 +34,34 @@ const SettingsPage = () => {
                 newPassword: '',
                 profileImage: currentUser.photoURL || null
             });
+            // Set initial preview to current profile photo
+            setProfileImagePreview(currentUser.photoURL || null);
         }
     }, [currentUser]);
 
     const handleImageChange = (e) => {
         const file = e.target.files[0];
         if (file) {
+            // Validate file type
+            if (!file.type.startsWith('image/')) {
+                setMessage({ type: 'error', text: 'Please select an image file' });
+                return;
+            }
+
+            // Validate file size (max 5MB)
+            const maxSize = 5 * 1024 * 1024; // 5MB
+            if (file.size > maxSize) {
+                setMessage({ type: 'error', text: 'Image size must be less than 5MB' });
+                return;
+            }
+
+            // Store the file object
+            setProfileImageFile(file);
+
+            // Create preview URL
             const reader = new FileReader();
             reader.onloadend = () => {
-                setFormData({ ...formData, profileImage: reader.result });
+                setProfileImagePreview(reader.result);
             };
             reader.readAsDataURL(file);
         }
@@ -66,9 +89,17 @@ const SettingsPage = () => {
                 updates.displayName = newDisplayName;
             }
 
-            // Update photo URL if changed
-            if (formData.profileImage && formData.profileImage !== currentUser.photoURL) {
-                updates.photoURL = formData.profileImage;
+            // Upload profile image if a new one was selected
+            if (profileImageFile) {
+                try {
+                    setMessage({ type: 'info', text: 'Uploading profile image...' });
+                    const photoURL = await uploadProfileImage(profileImageFile, currentUser.uid);
+                    updates.photoURL = photoURL;
+                    // Clear the file state after successful upload
+                    setProfileImageFile(null);
+                } catch (error) {
+                    throw new Error(`Failed to upload image: ${error.message}`);
+                }
             }
 
             // Update profile
@@ -228,7 +259,7 @@ const SettingsPage = () => {
                                     width: '100px',
                                     height: '100px',
                                     borderRadius: '50%',
-                                    background: formData.profileImage ? `url(${formData.profileImage}) no-repeat center/cover` : '#ed7b66',
+                                    background: profileImagePreview ? `url(${profileImagePreview}) no-repeat center/cover` : '#ed7b66',
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
@@ -238,12 +269,12 @@ const SettingsPage = () => {
                                 }}
                                 onClick={() => document.getElementById('fileInput').click()}
                             >
-                                {!formData.profileImage && formData.firstName && formData.lastName && (
+                                {!profileImagePreview && formData.firstName && formData.lastName && (
                                     <span style={{ fontSize: '36px', fontWeight: 'bold', color: 'white' }}>
                                         {formData.firstName.charAt(0)}{formData.lastName.charAt(0)}
                                     </span>
                                 )}
-                                {!formData.profileImage && (!formData.firstName || !formData.lastName) && (
+                                {!profileImagePreview && (!formData.firstName || !formData.lastName) && (
                                     <Camera size={32} color="white" />
                                 )}
                                 <div style={{
