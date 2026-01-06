@@ -30,7 +30,11 @@ export const getDailyContent = async (date) => {
     const docSnap = await getDoc(docRef);
 
     if (docSnap.exists()) {
-      return { id: docSnap.id, ...docSnap.data() };
+      const data = docSnap.data();
+      // Only return if published is true
+      if (data.published === true) {
+        return { id: docSnap.id, ...data };
+      }
     }
     return null;
   } catch (error) {
