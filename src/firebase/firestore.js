@@ -76,10 +76,33 @@ export const saveDailyContent = async (date, content) => {
     await setDoc(docRef, {
       ...content,
       date,
+      published: true,
       updatedAt: serverTimestamp(),
     }, { merge: true });
   } catch (error) {
     console.error('Error saving daily content:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get all daily content entries (Admin only)
+ * @returns {Promise<Array>} Array of daily content objects
+ */
+export const getAllDailyContent = async () => {
+  try {
+    const q = query(
+      collection(db, 'dailyContent'),
+      orderBy('date', 'desc')
+    );
+    const querySnapshot = await getDocs(q);
+
+    return querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+  } catch (error) {
+    console.error('Error getting all daily content:', error);
     throw error;
   }
 };

@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import {
     saveDailyContent,
     getDailyContent,
+    getAllDailyContent,
     getPrayerRequests,
     addComment,
     getFlaggedRequests,
@@ -336,7 +337,7 @@ const Overview = ({ dashboardStats, posts }) => {
     );
 };
 
-const ContentView = ({ posts, onEdit, onDelete, onCreate }) => (
+const ContentView = ({ posts, loading, onEdit, onDelete, onCreate }) => (
     <div className="fade-in">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
             <h2 style={{ fontSize: '24px' }}>Content Management</h2>
@@ -346,46 +347,67 @@ const ContentView = ({ posts, onEdit, onDelete, onCreate }) => (
             </button>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {posts.map(post => (
-                <div key={post.id} className="glass" style={{ padding: '20px', borderRadius: 'var(--radius-md)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ flex: 1 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                            <span style={{ fontSize: '10px', fontWeight: 700, color: post.status === 'published' ? 'var(--accent-cyan)' : 'var(--text-tertiary)', textTransform: 'uppercase', padding: '2px 6px', borderRadius: '4px', background: post.status === 'published' ? 'rgba(6,182,212,0.1)' : 'rgba(255,255,255,0.05)' }}>
-                                {post.status}
-                            </span>
-                            <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>{post.date || 'No Date'}</span>
+        {loading ? (
+            <div style={{
+                textAlign: 'center',
+                padding: '48px',
+                color: 'var(--text-tertiary)',
+                fontSize: '16px',
+                fontStyle: 'italic'
+            }}>
+                Loading daily content...
+            </div>
+        ) : posts.length === 0 ? (
+            <div style={{
+                textAlign: 'center',
+                padding: '48px',
+                color: 'var(--text-tertiary)',
+                fontSize: '16px'
+            }}>
+                No daily content yet. Click "New Entry" to create your first one!
+            </div>
+        ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {posts.map(post => (
+                    <div key={post.id} className="glass" style={{ padding: '20px', borderRadius: 'var(--radius-md)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ flex: 1 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                                <span style={{ fontSize: '10px', fontWeight: 700, color: post.status === 'published' ? 'var(--accent-cyan)' : 'var(--text-tertiary)', textTransform: 'uppercase', padding: '2px 6px', borderRadius: '4px', background: post.status === 'published' ? 'rgba(6,182,212,0.1)' : 'rgba(255,255,255,0.05)' }}>
+                                    {post.status}
+                                </span>
+                                <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>{post.date || 'No Date'}</span>
+                            </div>
+                            <span style={{ fontSize: '16px', fontWeight: 600 }}>{post.title}</span>
                         </div>
-                        <span style={{ fontSize: '16px', fontWeight: 600 }}>{post.title}</span>
-                    </div>
 
-                    {/* Engagement Stats */}
-                    {post.status === 'published' && (
-                        <div style={{ display: 'flex', gap: '24px', marginRight: '32px' }}>
-                            <div style={{ textAlign: 'center' }}>
-                                <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>{post.opens || 0}</div>
-                                <div style={{ fontSize: '10px', color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>Reads</div>
-                            </div>
-                            <div style={{ textAlign: 'center' }}>
-                                <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>{post.prayers || 0}</div>
-                                <div style={{ fontSize: '10px', color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>Prayers</div>
-                            </div>
-                            <div style={{ textAlign: 'center' }}>
-                                <div style={{ fontSize: '14px', fontWeight: 700, color: '#10b981' }}>
-                                    {post.opens > 0 ? Math.round((post.prayers / post.opens) * 100) : 0}%
+                        {/* Engagement Stats */}
+                        {post.status === 'published' && (
+                            <div style={{ display: 'flex', gap: '24px', marginRight: '32px' }}>
+                                <div style={{ textAlign: 'center' }}>
+                                    <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>{post.opens || 0}</div>
+                                    <div style={{ fontSize: '10px', color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>Reads</div>
                                 </div>
-                                <div style={{ fontSize: '10px', color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>Rate</div>
+                                <div style={{ textAlign: 'center' }}>
+                                    <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>{post.prayers || 0}</div>
+                                    <div style={{ fontSize: '10px', color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>Prayers</div>
+                                </div>
+                                <div style={{ textAlign: 'center' }}>
+                                    <div style={{ fontSize: '14px', fontWeight: 700, color: '#10b981' }}>
+                                        {post.opens > 0 ? Math.round((post.prayers / post.opens) * 100) : 0}%
+                                    </div>
+                                    <div style={{ fontSize: '10px', color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>Rate</div>
+                                </div>
                             </div>
-                        </div>
-                    )}
+                        )}
 
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                        <button onClick={() => onEdit(post)} style={{ padding: '8px', color: 'var(--text-secondary)' }}><Pencil size={18} /></button>
-                        <button onClick={() => onDelete(post.id)} style={{ padding: '8px', color: 'var(--accent-pink)' }}><Trash2 size={18} /></button>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                            <button onClick={() => onEdit(post)} style={{ padding: '8px', color: 'var(--text-secondary)' }}><Pencil size={18} /></button>
+                            <button onClick={() => onDelete(post.id)} style={{ padding: '8px', color: 'var(--accent-pink)' }}><Trash2 size={18} /></button>
+                        </div>
                     </div>
-                </div>
-            ))}
-        </div>
+                ))}
+            </div>
+        )}
     </div>
 );
 
@@ -744,11 +766,50 @@ const AdminPage = () => {
 
     // --- Data & Handlers ---
 
-    const [posts, setPosts] = useState([
-        { id: 1, status: 'published', date: '2026-01-04', title: 'Walking in Faith', opens: 842, prayers: 512, devotionalTitle: 'Walking in Faith' },
-        { id: 2, status: 'published', date: '2026-01-03', title: 'The Power of Prayer', opens: 750, prayers: 380, devotionalTitle: 'The Power of Prayer' },
-        { id: 3, status: 'draft', date: '2026-01-05', title: 'Trusting God', opens: 0, prayers: 0, devotionalTitle: 'Trusting God' },
-    ]);
+    const [posts, setPosts] = useState([]);
+    const [loadingPosts, setLoadingPosts] = useState(true);
+
+    // Fetch all daily content on mount
+    useEffect(() => {
+        const fetchDailyContent = async () => {
+            try {
+                setLoadingPosts(true);
+                const content = await getAllDailyContent();
+
+                // Transform Firestore data to match UI format
+                const formattedPosts = content.map(item => ({
+                    id: item.id,
+                    date: item.date,
+                    title: item.devotional?.title || 'Untitled',
+                    status: item.published ? 'published' : 'draft',
+                    opens: item.opens || 0,
+                    prayers: item.prayers || 0,
+                    devotionalTitle: item.devotional?.title || '',
+                    verseText: item.verse?.text || '',
+                    verseReference: item.verse?.reference || '',
+                    prayerText: item.prayer?.text || '',
+                    prayerAudio: item.prayer?.audioUrl || '',
+                    devotionalContent: item.devotional?.content || '',
+                    devotionalAudio: item.devotional?.audioUrl || '',
+                    prompt1: item.journalPrompts?.[0] || '',
+                    prompt2: item.journalPrompts?.[1] || '',
+                    prompt3: item.journalPrompts?.[2] || '',
+                    adImage: item.ad?.imageUrl || null,
+                    adLink: item.ad?.link || '',
+                    showAd: item.ad?.show || false,
+                    adDuration: item.ad?.duration || 5
+                }));
+
+                setPosts(formattedPosts);
+            } catch (error) {
+                console.error('Error fetching daily content:', error);
+            } finally {
+                setLoadingPosts(false);
+            }
+        };
+
+        fetchDailyContent();
+    }, []);
 
     const initialForm = { date: '', verseText: '', verseReference: '', prayerText: '', prayerAudio: '', devotionalTitle: '', devotionalContent: '', devotionalAudio: '', prompt1: '', prompt2: '', prompt3: '', adImage: null, adLink: '', showAd: true, adDuration: 5 };
     const [formData, setFormData] = useState(initialForm);
@@ -760,50 +821,69 @@ const AdminPage = () => {
 
     const handleSavePost = async (status) => {
         try {
-            const newPostData = {
-                id: editingId || Date.now(),
-                status,
-                date: formData.date,
-                title: formData.devotionalTitle || 'Untitled',
-                opens: formData.opens || 0,
-                prayers: formData.prayers || 0,
-                ...formData
+            if (!formData.date) {
+                alert('Please select a date for this content.');
+                return;
+            }
+
+            const contentData = {
+                verse: {
+                    text: formData.verseText || '',
+                    reference: formData.verseReference || ''
+                },
+                prayer: {
+                    text: formData.prayerText || '',
+                    audioUrl: formData.prayerAudio || ''
+                },
+                devotional: {
+                    title: formData.devotionalTitle || 'Daily Devotional',
+                    content: formData.devotionalContent || '',
+                    audioUrl: formData.devotionalAudio || ''
+                },
+                journalPrompts: [
+                    formData.prompt1 || '',
+                    formData.prompt2 || '',
+                    formData.prompt3 || ''
+                ],
+                ad: {
+                    imageUrl: formData.adImage || '',
+                    link: formData.adLink || '',
+                    show: formData.showAd || false,
+                    duration: formData.adDuration || 5
+                }
             };
 
-            if (editingId) setPosts(posts.map(p => p.id === editingId ? newPostData : p));
-            else setPosts([newPostData, ...posts]);
+            // Save to Firestore (both draft and published)
+            await saveDailyContent(formData.date, contentData);
 
-            // Save to Firestore when publishing
+            // Refresh the posts list
+            const allContent = await getAllDailyContent();
+            const formattedPosts = allContent.map(item => ({
+                id: item.id,
+                date: item.date,
+                title: item.devotional?.title || 'Untitled',
+                status: item.published ? 'published' : 'draft',
+                opens: item.opens || 0,
+                prayers: item.prayers || 0,
+                devotionalTitle: item.devotional?.title || '',
+                verseText: item.verse?.text || '',
+                verseReference: item.verse?.reference || '',
+                prayerText: item.prayer?.text || '',
+                prayerAudio: item.prayer?.audioUrl || '',
+                devotionalContent: item.devotional?.content || '',
+                devotionalAudio: item.devotional?.audioUrl || '',
+                prompt1: item.journalPrompts?.[0] || '',
+                prompt2: item.journalPrompts?.[1] || '',
+                prompt3: item.journalPrompts?.[2] || '',
+                adImage: item.ad?.imageUrl || null,
+                adLink: item.ad?.link || '',
+                showAd: item.ad?.show || false,
+                adDuration: item.ad?.duration || 5
+            }));
+            setPosts(formattedPosts);
+
+            // Update local context for immediate UI feedback (if published)
             if (status === 'published') {
-                await saveDailyContent({
-                    date: formData.date,
-                    verse: {
-                        text: formData.verseText || '',
-                        reference: formData.verseReference || ''
-                    },
-                    prayer: {
-                        text: formData.prayerText || '',
-                        audioUrl: formData.prayerAudio || ''
-                    },
-                    devotional: {
-                        title: formData.devotionalTitle || 'Daily Devotional',
-                        content: formData.devotionalContent || '',
-                        audioUrl: formData.devotionalAudio || ''
-                    },
-                    journalPrompts: [
-                        formData.prompt1 || '',
-                        formData.prompt2 || '',
-                        formData.prompt3 || ''
-                    ],
-                    ad: {
-                        imageUrl: formData.adImage || '',
-                        link: formData.adLink || '',
-                        show: formData.showAd || false,
-                        duration: formData.adDuration || 5
-                    }
-                });
-
-                // Update local context for immediate UI feedback
                 setDailyPost({
                     adImage: formData.adImage,
                     adLink: formData.adLink,
@@ -903,7 +983,7 @@ const AdminPage = () => {
 
                 {activeTab === 'content' && (
                     viewMode === 'list' ? (
-                        <ContentView posts={posts} onEdit={handleEdit} onDelete={handleDelete} onCreate={handleCreateNew} />
+                        <ContentView posts={posts} loading={loadingPosts} onEdit={handleEdit} onDelete={handleDelete} onCreate={handleCreateNew} />
                     ) : (
                         // Embedded Editor for Content Tab
                         <div className="fade-in">
