@@ -9,57 +9,31 @@ export const CommunityProvider = ({ children }) => {
     // Get userRole from AuthContext
     const { userRole } = useAuth();
 
-    // Initial dummy data
-    const initialFeed = [
-        { id: 1, name: 'Sarah M.', time: '2h ago', content: "Please pray for my mother's surgery tomorrow. We are hoping for a quick recovery and peace for the family during this time.", prayedCount: 24, commentCount: 5 },
-        { id: 2, name: 'David K.', time: '4h ago', content: "Fighting anxiety about my upcoming job interview. I really need this opportunity.", prayedCount: 15, commentCount: 2 },
-        { id: 3, name: 'Grace L.', time: '6h ago', content: "Praise report! My brother finally came back to church today after 5 years.", prayedCount: 42, commentCount: 12 },
-    ];
+    // Empty arrays - all data now comes from Firestore
+    const [feedItems] = useState([]);
+    const [flaggedItems] = useState([]);
 
-    const [feedItems, setFeedItems] = useState(initialFeed);
-    const [flaggedItems, setFlaggedItems] = useState([
-        { id: 101, content: "This is spam content...", reporter: 'John D.', time: '2h ago', reason: 'Spam' },
-        { id: 102, content: "Inappropriate language here...", reporter: 'Emily W.', time: '5h ago', reason: 'Harassment' },
-    ]);
-
-    // Daily post state
+    // Daily post state - used as fallback when Firestore data is not available
     const [dailyPost, setDailyPost] = useState({
         adImage: null,
-        adLink: 'https://example.com/journal',
-        showAd: true,
+        adLink: '',
+        showAd: false,
         adDuration: 5,
-        title: 'Walking in Faith',
-        content: "Faith is not just a feeling; it is a choice to trust God even when we cannot see the path ahead..."
+        title: 'Daily Devotional',
+        content: "Today's devotional content will appear here once added by an admin."
     });
 
-    const flagItem = (itemId, reason, reporterName = 'Anonymous') => {
-        const itemToFlag = feedItems.find(item => item.id === itemId);
-        if (itemToFlag) {
-            // Remove from feed
-            setFeedItems(prev => prev.filter(item => item.id !== itemId));
-            // Add to flagged
-            setFlaggedItems(prev => [...prev, {
-                ...itemToFlag,
-                reason,
-                reporter: reporterName,
-                time: 'Just now'
-            }]);
-        }
+    // Legacy functions kept for compatibility - use Firestore functions instead
+    const flagItem = () => {
+        console.warn('flagItem is deprecated - use flagPrayerRequest from firebase/firestore');
     };
 
-    const approveItem = (itemId) => {
-        const itemToApprove = flaggedItems.find(item => item.id === itemId);
-        if (itemToApprove) {
-            // Remove from flagged
-            setFlaggedItems(prev => prev.filter(item => item.id !== itemId));
-            // Add back to feed (prepend)
-            setFeedItems(prev => [{ ...itemToApprove }, ...prev]);
-        }
+    const approveItem = () => {
+        console.warn('approveItem is deprecated - use approveFlaggedRequest from firebase/firestore');
     };
 
-    const rejectItem = (itemId) => {
-        // PERMANENT DELETE
-        setFlaggedItems(prev => prev.filter(item => item.id !== itemId));
+    const rejectItem = () => {
+        console.warn('rejectItem is deprecated - use rejectFlaggedRequest from firebase/firestore');
     };
 
     return (
