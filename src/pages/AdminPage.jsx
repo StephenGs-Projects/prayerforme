@@ -451,6 +451,18 @@ const UsersView = () => {
         fetchUsers();
     }, []);
 
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = () => {
+            if (actionMenuOpen) {
+                setActionMenuOpen(null);
+            }
+        };
+
+        document.addEventListener('click', handleClickOutside);
+        return () => document.removeEventListener('click', handleClickOutside);
+    }, [actionMenuOpen]);
+
     const formatDate = (timestamp) => {
         if (!timestamp) return 'Unknown';
         const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
@@ -533,7 +545,7 @@ const UsersView = () => {
                     Loading users...
                 </div>
             ) : (
-                <div className="glass" style={{ borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
+                <div className="glass" style={{ borderRadius: 'var(--radius-lg)', overflow: 'visible' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                         <thead style={{ background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                             <tr>
@@ -577,23 +589,29 @@ const UsersView = () => {
                                     <td style={{ padding: '16px', fontSize: '14px', color: 'var(--text-secondary)' }}>{formatDate(user.createdAt)}</td>
                                     <td style={{ padding: '16px', textAlign: 'right', position: 'relative' }}>
                                         <button
-                                            onClick={() => setActionMenuOpen(actionMenuOpen === user.id ? null : user.id)}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setActionMenuOpen(actionMenuOpen === user.id ? null : user.id);
+                                            }}
                                             style={{ color: 'var(--text-tertiary)', position: 'relative' }}
                                         >
                                             <MoreVertical size={18} />
                                         </button>
                                         {actionMenuOpen === user.id && (
-                                            <div style={{
+                                            <div
+                                                onClick={(e) => e.stopPropagation()}
+                                                style={{
                                                 position: 'absolute',
-                                                right: '16px',
-                                                top: '40px',
+                                                right: '0px',
+                                                top: '100%',
+                                                marginTop: '4px',
                                                 background: 'var(--bg-surface)',
                                                 border: '1px solid var(--border-surface)',
                                                 borderRadius: 'var(--radius-md)',
                                                 padding: '8px',
-                                                zIndex: 100,
-                                                minWidth: '180px',
-                                                boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+                                                zIndex: 1000,
+                                                minWidth: '200px',
+                                                boxShadow: '0 8px 24px rgba(0,0,0,0.4)'
                                             }}>
                                                 <div style={{ padding: '8px 12px', fontSize: '12px', color: 'var(--text-tertiary)', textTransform: 'uppercase', fontWeight: 600 }}>
                                                     Change Role
