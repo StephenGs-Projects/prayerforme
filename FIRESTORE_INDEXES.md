@@ -71,12 +71,61 @@ When you see "Failed to load daily content", check the browser console. Firestor
 
 **Why**: Used by `getFlaggedRequests()` in admin moderation panel
 
+---
+
+### 5. Daily Content - Scheduling by Status
+**Collection**: `dailyContent`
+**Query**: Filter content by status (draft/scheduled/published)
+
+| Field | Order |
+|-------|-------|
+| status | Ascending |
+| date | Descending |
+| __name__ | Descending |
+
+**Why**: Used by `getAllDailyContentWithStatus()` to show content filtered by status
+
+---
+
+### 6. Daily Content - Auto-Publish Scheduled
+**Collection**: `dailyContent`
+**Query**: Find scheduled content ready to publish
+
+| Field | Order |
+|-------|-------|
+| status | Ascending |
+| publishDate | Ascending |
+| __name__ | Ascending |
+
+**Why**: Used by `getScheduledContentToPublish()` to auto-publish content at scheduled time
+
+---
+
+### 7. Comments (Collection Group) - All Comments
+**Collection Group**: `comments`
+**Query**: Get all comments across all prayer requests
+
+| Field | Order |
+|-------|-------|
+| status | Ascending |
+| createdAt | Descending |
+| __name__ | Descending |
+
+**Why**: Used by `getAllComments()` for comment moderation view
+
+**⚠️ Important**: This is a **Collection Group** index, not a regular collection index!
+
+---
+
 ## Current Status
 
 - ✅ Prayer Requests by Status (Index #2)
 - ✅ User Prayer Requests (Index #3)
 - ✅ Daily Content Query (Index #1)
 - ❓ Flagged Requests (Index #4) - **Create if you see errors when viewing flagged content**
+- ⏳ Daily Content - Scheduling by Status (Index #5) - **Required for content scheduling**
+- ⏳ Daily Content - Auto-Publish (Index #6) - **Required for auto-publishing scheduled content**
+- ⏳ Comments Collection Group (Index #7) - **Required for comment moderation view**
 
 ## How to Check Index Build Status
 

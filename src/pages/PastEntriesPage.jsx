@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, Plus, Trash2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { getUserJournalEntries } from '../firebase/firestore';
+import { getUserJournalEntries, deleteJournalEntry } from '../firebase/firestore';
+import DeleteConfirmModal from '../components/DeleteConfirmModal';
 
 const PastEntriesPage = () => {
     const navigate = useNavigate();
     const { currentUser } = useAuth();
     const [entries, setEntries] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [entryToDelete, setEntryToDelete] = useState(null);
 
     useEffect(() => {
         const fetchEntries = async () => {
@@ -46,13 +49,53 @@ const PastEntriesPage = () => {
         return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     };
 
+    const handleDelete = (e, entryId) => {
+        e.stopPropagation();
+        setEntryToDelete(entryId);
+        setIsModalOpen(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!entryToDelete) return;
+
+        try {
+            await deleteJournalEntry(currentUser.uid, entryToDelete);
+            setEntries(entries.filter(entry => entry.id !== entryToDelete));
+            setIsModalOpen(false);
+            setEntryToDelete(null);
+        } catch (error) {
+            console.error('Error deleting entry:', error);
+            alert('Failed to delete entry. Please try again.');
+        }
+    };
+
     return (
         <div style={{ padding: '20px', paddingTop: '40px', paddingBottom: '100px', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
 
             {/* Header */}
-            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                    <button
+                        onClick={() => navigate('/more')}
+                        className="glass"
+                        style={{
+                            width: '40px',
+                            height: '40px',
+                            borderRadius: '50%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            marginRight: '16px',
+                            color: 'var(--text-secondary)'
+                        }}
+                    >
+                        <ChevronLeft size={24} />
+                    </button>
+                    <h1 style={{ fontSize: '24px', margin: 0 }}>Past Entries</h1>
+                </div>
+
                 <button
-                    onClick={() => navigate(-1)}
+                    onClick={() => navigate('/journal?manual=true')}
                     className="glass"
                     style={{
                         width: '40px',
@@ -61,13 +104,11 @@ const PastEntriesPage = () => {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        marginRight: '16px',
-                        color: 'var(--text-secondary)'
+                        color: 'var(--accent-cyan)'
                     }}
                 >
-                    <ChevronLeft size={24} />
+                    <Plus size={24} />
                 </button>
-                <h1 style={{ fontSize: '24px', margin: 0 }}>Past Entries</h1>
             </div>
 
             {loading ? (
@@ -99,38 +140,109 @@ const PastEntriesPage = () => {
                     No journal entries yet. Start writing to see them here!
                 </div>
             ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                     {entries.map(entry => (
-                        <button
+                        <div
                             key={entry.id}
-                            onClick={() => navigate(`/history/${entry.id}`)}
                             className="glass"
                             style={{
-                                padding: '20px',
-                                borderRadius: 'var(--radius-md)',
+                                padding: '24px',
+                                borderRadius: 'var(--radius-lg)',
                                 display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
+                                flexDirection: 'column',
                                 textAlign: 'left',
                                 width: '100%',
-                                transition: 'transform 0.2s ease, background 0.2s ease'
+                                transition: 'transform 0.2s ease, background 0.2s ease',
+                                cursor: 'pointer',
+                                border: '1px solid rgba(255,255,255,0.05)'
+                            }}
+                            onClick={() => navigate(`/history/${entry.id}`)}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.transform = 'translateY(-2px)';
+                                e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.transform = 'translateY(0)';
+                                e.currentTarget.style.background = 'var(--bg-surface)';
                             }}
                         >
-                            <div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', color: 'var(--accent-cyan)', fontSize: '13px', fontWeight: 600 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-tertiary)', fontSize: '13px', fontWeight: 500, letterSpacing: '0.5px' }}>
                                     <Calendar size={14} />
                                     <span>{entry.date}</span>
                                 </div>
-                                <h3 style={{ fontSize: '18px', marginBottom: '6px', color: 'var(--text-primary)' }}>{entry.title}</h3>
-                                <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.4', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                                    {entry.preview}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                    <button
+                                        onClick={(e) => handleDelete(e, entry.id)}
+                                        style={{
+                                            padding: '8px',
+                                            borderRadius: '50%',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            color: 'var(--text-tertiary)',
+                                            background: 'transparent',
+                                            transition: 'all 0.2s'
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            e.stopPropagation();
+                                            e.currentTarget.style.color = '#ef4444';
+                                            e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            e.stopPropagation();
+                                            e.currentTarget.style.color = 'var(--text-tertiary)';
+                                            e.currentTarget.style.background = 'transparent';
+                                        }}
+                                    >
+                                        <Trash2 size={16} />
+                                    </button>
+                                    <ChevronRight size={18} color="var(--text-tertiary)" />
+                                </div>
+                            </div>
+
+                            <p style={{
+                                fontSize: '17px',
+                                color: 'var(--text-primary)',
+                                lineHeight: '1.6',
+                                marginBottom: '16px',
+                                display: '-webkit-box',
+                                WebkitLineClamp: 3,
+                                WebkitBoxOrient: 'vertical',
+                                overflow: 'hidden',
+                                fontWeight: 400
+                            }}>
+                                {entry.preview}
+                            </p>
+
+                            <div style={{
+                                paddingLeft: '16px',
+                                borderLeft: '2px solid var(--border-surface)',
+                                marginTop: '4px'
+                            }}>
+                                <p style={{
+                                    fontSize: '13px',
+                                    color: 'var(--text-tertiary)',
+                                    lineHeight: '1.5',
+                                    fontStyle: 'italic',
+                                    display: '-webkit-box',
+                                    WebkitLineClamp: 2,
+                                    WebkitBoxOrient: 'vertical',
+                                    overflow: 'hidden'
+                                }}>
+                                    {entry.title}
                                 </p>
                             </div>
-                            <ChevronRight size={20} color="var(--text-tertiary)" />
-                        </button>
+                        </div>
                     ))}
                 </div>
             )}
+
+            <DeleteConfirmModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                onConfirm={confirmDelete}
+            />
         </div>
     );
 };

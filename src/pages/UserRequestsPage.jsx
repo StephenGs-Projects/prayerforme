@@ -1,15 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, MessageCircle, MoreHorizontal } from 'lucide-react';
+import { ChevronLeft, MessageCircle, MoreHorizontal, Trash2 } from 'lucide-react';
 import PrayerHandsIcon from '../components/PrayerHandsIcon';
 import { useAuth } from '../context/AuthContext';
-import { getUserPrayerRequests } from '../firebase/firestore';
+import { getUserPrayerRequests, deletePrayerRequest } from '../firebase/firestore';
 
 const UserRequestsPage = () => {
     const navigate = useNavigate();
     const { currentUser } = useAuth();
     const [myRequests, setMyRequests] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [openMenuId, setOpenMenuId] = useState(null);
+    const menuRef = useRef(null);
 
     useEffect(() => {
         const fetchRequests = async () => {
@@ -46,6 +48,34 @@ const UserRequestsPage = () => {
         if (!timestamp) return '';
         const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
         return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    };
+
+    // Close menu when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (menuRef.current && !menuRef.current.contains(event.target)) {
+                setOpenMenuId(null);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const handleDelete = async (requestId) => {
+        if (!window.confirm('Are you sure you want to delete this prayer request?\n\nThis action cannot be undone.')) {
+            return;
+        }
+
+        try {
+            await deletePrayerRequest(requestId);
+            // Update local state to remove the deleted request
+            setMyRequests(myRequests.filter(req => req.id !== requestId));
+            setOpenMenuId(null);
+        } catch (error) {
+            console.error('Error deleting prayer request:', error);
+            alert('Failed to delete prayer request. Please try again.');
+        }
     };
 
     return (
@@ -94,27 +124,94 @@ const UserRequestsPage = () => {
                     {myRequests.map(req => (
                         <div
                             key={req.id}
-                            onClick={() => navigate(`/community/${req.id}`)}
                             className="glass"
-                            style={{ padding: '20px', borderRadius: 'var(--radius-lg)', cursor: 'pointer' }}
+                            style={{ padding: '20px', borderRadius: 'var(--radius-lg)', position: 'relative' }}
                         >
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-                                <span style={{ fontSize: '13px', color: 'var(--text-tertiary)' }}>{req.date}</span>
-                                <MoreHorizontal size={18} color="var(--text-tertiary)" />
-                            </div>
+                            <div
+                                onClick={() => navigate(`/community/${req.id}`)}
+                                style={{ cursor: 'pointer' }}
+                            >
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                                    <span style={{ fontSize: '13px', color: 'var(--text-tertiary)' }}>{req.date}</span>
+                                    <div
+                                        ref={openMenuId === req.id ? menuRef : null}
+                                        style={{ position: 'relative' }}
+                                        onClick={(e) => e.stopPropagation()}
+                                    >
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setOpenMenuId(openMenuId === req.id ? null : req.id);
+                                            }}
+                                            style={{
+                                                padding: '4px',
+                                                color: 'var(--text-tertiary)',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center'
+                                            }}
+                                        >
+                                            <MoreHorizontal size={18} />
+                                        </button>
 
-                            <p style={{ marginBottom: '16px', fontSize: '15px', lineHeight: '1.5', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                                {req.content}
-                            </p>
-
-                            <div style={{ display: 'flex', gap: '20px' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: 'var(--accent-cyan)' }}>
-                                    <PrayerHandsIcon size={16} color="var(--accent-cyan)" />
-                                    <span>{req.prayedCount} Prayed</span>
+                                        {openMenuId === req.id && (
+                                            <div
+                                                style={{
+                                                    position: 'absolute',
+                                                    top: '100%',
+                                                    right: '0',
+                                                    marginTop: '4px',
+                                                    background: 'var(--bg-surface)',
+                                                    border: '1px solid var(--border-surface)',
+                                                    borderRadius: 'var(--radius-md)',
+                                                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                                                    zIndex: 10,
+                                                    overflow: 'hidden',
+                                                    minWidth: '160px'
+                                                }}
+                                            >
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleDelete(req.id);
+                                                    }}
+                                                    style={{
+                                                        width: '100%',
+                                                        padding: '12px 16px',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: '8px',
+                                                        color: '#ef4444',
+                                                        fontSize: '14px',
+                                                        fontWeight: 400,
+                                                        background: 'transparent',
+                                                        transition: 'background 0.2s',
+                                                        textAlign: 'left'
+                                                    }}
+                                                    onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-app)'}
+                                                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                                >
+                                                    <Trash2 size={16} />
+                                                    Delete Request
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: 'var(--text-secondary)' }}>
-                                    <MessageCircle size={16} />
-                                    <span>{req.commentCount} Comments</span>
+
+                                <p style={{ marginBottom: '16px', fontSize: '15px', lineHeight: '1.5', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                    {req.content}
+                                </p>
+
+                                <div style={{ display: 'flex', gap: '20px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: 'var(--accent-cyan)' }}>
+                                        <PrayerHandsIcon size={16} color="var(--accent-cyan)" />
+                                        <span>{req.prayedCount} Prayed</span>
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: 'var(--text-secondary)' }}>
+                                        <MessageCircle size={16} />
+                                        <span>{req.commentCount} Comments</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>

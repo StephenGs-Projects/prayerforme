@@ -75,6 +75,7 @@ const CommunityPage = () => {
                 userId: currentUser.uid,
                 userName: currentUser.displayName || 'Anonymous',
                 userEmail: currentUser.email,
+                photoURL: currentUser.photoURL || null,
                 content: newRequest.trim()
             });
 
@@ -182,15 +183,17 @@ const CommunityPage = () => {
                         width: '48px',
                         height: '48px',
                         borderRadius: '50%',
-                        background: getAvatarColor(item.name),
+                        background: item.photoURL ? `url(${item.photoURL}) center/cover` : getAvatarColor(item.name),
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         flexShrink: 0
                     }}>
-                        <span style={{ color: 'var(--bg-surface)', fontWeight: 300, fontSize: '18px' }}>
-                            {item.name.charAt(0)}
-                        </span>
+                        {!item.photoURL && (
+                            <span style={{ color: 'var(--bg-surface)', fontWeight: 300, fontSize: '18px' }}>
+                                {item.name.charAt(0)}
+                            </span>
+                        )}
                     </div>
 
                     <div style={{ flex: 1, minWidth: 0 }}>

@@ -1,15 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PenLine, Play } from 'lucide-react';
+import { PenLine, Play, Pause } from 'lucide-react';
 import { useCommunity } from '../context/CommunityContext';
-import { getDailyContent, getLatestDailyContent } from '../firebase/firestore';
+import { useAuth } from '../context/AuthContext';
+import { getDailyContent, getLatestDailyContent, trackDailyContentOpen } from '../firebase/firestore';
+import { markdownToSafeHTML } from '../utils/markdown';
 
 const DevotionalPage = () => {
     const navigate = useNavigate();
     const { userRole, dailyPost } = useCommunity();
+    const { currentUser } = useAuth();
     const [dailyContent, setDailyContent] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [isPlaying, setIsPlaying] = useState(false);
+    const audioRef = useRef(null);
 
     useEffect(() => {
         const fetchDailyContent = async () => {
@@ -29,6 +34,11 @@ const DevotionalPage = () => {
                 }
 
                 setDailyContent(content);
+
+                // Track content open for analytics (non-blocking, only for signed-in users)
+                if (content && content.date && currentUser) {
+                    trackDailyContentOpen(content.date, currentUser.uid);
+                }
             } catch (err) {
                 console.error('Error fetching daily content:', err);
                 setError('Failed to load devotional content');
@@ -40,9 +50,22 @@ const DevotionalPage = () => {
         fetchDailyContent();
     }, []);
 
+    const toggleAudio = () => {
+        if (!audioRef.current) return;
+        if (isPlaying) {
+            audioRef.current.pause();
+        } else {
+            audioRef.current.play();
+        }
+        setIsPlaying(!isPlaying);
+    };
+
     const handleNext = () => {
-        // Only show ad to free users if an ad exists and is enabled
-        if (userRole === 'free' && (dailyContent?.showAd || dailyPost.showAd)) {
+        // Only show ad to free users and admins if an ad exists and is enabled
+        const hasAd = dailyContent?.ad?.show || dailyPost.showAd;
+        const isEligibleRole = userRole === 'free' || userRole === 'admin';
+
+        if (isEligibleRole && hasAd) {
             navigate('/ad');
         } else {
             navigate('/journal');
@@ -107,20 +130,34 @@ const DevotionalPage = () => {
                                 </h1>
 
                                 {/* Play Button */}
-                                <button style={{
-                                    width: '40px',
-                                    height: '40px',
-                                    backgroundColor: '#06b6d4',
-                                    borderRadius: '50%',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    flexShrink: 0,
-                                    marginTop: '4px',
-                                    transition: 'background-color 0.2s'
-                                }}>
-                                    <Play size={20} fill="white" color="white" style={{ marginLeft: '2px' }} />
-                                </button>
+                                {dailyContent?.devotional?.audioUrl && (
+                                    <button
+                                        onClick={toggleAudio}
+                                        style={{
+                                            width: '40px',
+                                            height: '40px',
+                                            backgroundColor: '#06b6d4',
+                                            borderRadius: '50%',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            flexShrink: 0,
+                                            marginTop: '4px',
+                                            transition: 'background-color 0.2s'
+                                        }}
+                                    >
+                                        <audio
+                                            ref={audioRef}
+                                            src={dailyContent.devotional.audioUrl}
+                                            onEnded={() => setIsPlaying(false)}
+                                        />
+                                        {isPlaying ? (
+                                            <Pause size={20} fill="white" color="white" />
+                                        ) : (
+                                            <Play size={20} fill="white" color="white" style={{ marginLeft: '2px' }} />
+                                        )}
+                                    </button>
+                                )}
                             </>
                         )}
                     </div>
@@ -145,15 +182,17 @@ const DevotionalPage = () => {
                             Loading content...
                         </p>
                     ) : error ? null : (
-                        <p style={{
-                            fontSize: '18px',
-                            lineHeight: 1.7,
-                            color: 'var(--text-secondary)',
-                            fontWeight: 300,
-                            whiteSpace: 'pre-wrap'
-                        }}>
-                            {dailyContent?.devotional?.content || dailyPost.content || 'No devotional content available for today.'}
-                        </p>
+                        <div
+                            style={{
+                                fontSize: '18px',
+                                lineHeight: 1.7,
+                                color: 'var(--text-secondary)',
+                                fontWeight: 300
+                            }}
+                            dangerouslySetInnerHTML={{
+                                __html: markdownToSafeHTML(dailyContent?.devotional?.content || dailyPost.content || 'No devotional content available for today.')
+                            }}
+                        />
                     )}
                 </div>
 

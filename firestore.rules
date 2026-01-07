@@ -51,8 +51,9 @@ service cloud.firestore {
 
     // Daily content collection
     match /dailyContent/{contentId} {
-      // Everyone (authenticated) can read published content
-      allow read: if isAuthenticated() && resource.data.published == true;
+      // Everyone (including unauthenticated users) can read published content
+      // Supports both old 'published' field and new 'status' field
+      allow read: if resource.data.published == true || resource.data.status == 'published';
 
       // Admins can read all content (including drafts)
       allow read: if isAdmin();

@@ -227,7 +227,7 @@ const MorePage = () => {
                         <MenuItem
                             icon={History}
                             label="Past Journal Entries"
-                            action={() => navigate('/history')}
+                            action={() => navigate('/entries')}
                         />
                         <MenuItem
                             icon={PrayerHandsIcon}

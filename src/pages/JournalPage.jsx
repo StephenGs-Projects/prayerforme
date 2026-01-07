@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowRight, Check } from 'lucide-react';
 import { useFlow } from '../context/FlowContext';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { saveJournalEntry, getDailyContent, getLatestDailyContent } from '../firebase/firestore';
 
@@ -14,6 +14,11 @@ const JournalPage = () => {
     const { showNav } = useFlow();
     const { currentUser } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
+
+    // Parse URL params
+    const queryParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
+    const isManual = queryParams.get('manual') === 'true';
 
     // Fetch daily content for journal prompts
     useEffect(() => {
@@ -75,8 +80,12 @@ const JournalPage = () => {
             }
         }
 
-        showNav();
-        navigate('/community');
+        if (isManual) {
+            navigate('/entries');
+        } else {
+            showNav();
+            navigate('/community');
+        }
     };
 
     return (
@@ -226,7 +235,7 @@ const JournalPage = () => {
                         }
                     }}
                 >
-                    <span>{saving ? 'Saving...' : (entry.trim() ? 'Complete' : 'Skip')}</span>
+                    <span>{saving ? 'Saving...' : (entry.trim() ? 'Complete' : (isManual ? 'Cancel' : 'Skip'))}</span>
                     <ArrowRight size={16} strokeWidth={2} />
                 </button>
             </div>

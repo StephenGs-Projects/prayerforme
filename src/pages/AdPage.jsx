@@ -1,118 +1,160 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, ArrowRight } from 'lucide-react';
-import { useCommunity } from '../context/CommunityContext';
+import { X, ArrowRight, Loader2 } from 'lucide-react';
+import { getDailyContent, getLatestDailyContent } from '../firebase/firestore';
 
 const AdPage = () => {
     const navigate = useNavigate();
-    const { dailyPost } = useCommunity();
-    const [secondsLeft, setSecondsLeft] = useState(dailyPost.adDuration || 5);
+    const [dailyContent, setDailyContent] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [secondsLeft, setSecondsLeft] = useState(5);
     const [canClose, setCanClose] = useState(false);
 
     useEffect(() => {
-        if (secondsLeft > 0) {
-            const timer = setInterval(() => {
-                setSecondsLeft(prev => prev - 1);
-            }, 1000);
+        const fetchDailyContent = async () => {
+            try {
+                setLoading(true);
+                const today = new Date().toISOString().split('T')[0];
+                let content = await getDailyContent(today);
+                if (!content) content = await getLatestDailyContent();
+
+                if (content?.ad?.show) {
+                    setDailyContent(content);
+                    setSecondsLeft(content.ad.duration || 5);
+                } else {
+                    console.log('No ad for today, skipping');
+                    navigate('/journal');
+                }
+            } catch (err) {
+                console.error('Ad fetch error:', err);
+                setError('Failed to load');
+                setTimeout(() => navigate('/journal'), 1500);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchDailyContent();
+    }, [navigate]);
+
+    useEffect(() => {
+        if (!loading && secondsLeft > 0) {
+            const timer = setInterval(() => setSecondsLeft(p => p - 1), 1000);
             return () => clearInterval(timer);
-        } else {
+        } else if (!loading && secondsLeft <= 0) {
             setCanClose(true);
         }
-    }, [secondsLeft]);
+    }, [secondsLeft, loading]);
 
-    const defaultAd = "/Users/main/.gemini/antigravity/brain/6e9e27e5-eadd-4f19-bdbb-279fe676a3cb/physical_journal_ad_1767634259884.png";
-    const adImage = dailyPost.adImage || defaultAd;
-    const isDefaultAd = !dailyPost.adImage;
+    if (loading) return (
+        <div style={{
+            position: 'fixed', inset: 0, zIndex: 2000, background: 'var(--bg-app)',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px'
+        }}>
+            <Loader2 size={32} className="animate-spin" color="var(--accent-cyan)" />
+            <p style={{ color: 'var(--text-tertiary)' }}>Loading sponsorship...</p>
+        </div>
+    );
+
+    if (error || !dailyContent?.ad) return null;
+
+    const ad = dailyContent.ad;
 
     return (
         <div style={{
-            position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
-            background: 'var(--bg-app)', zIndex: 1000, display: 'flex', flexDirection: 'column'
+            position: 'fixed', inset: 0, zIndex: 2000, background: '#000',
+            display: 'flex', flexDirection: 'column'
         }}>
-            {/* Top Close Button / Countdown */}
-            <div style={{
-                position: 'absolute', top: '20px', right: '20px', zIndex: 1001,
-                display: 'flex', alignItems: 'center', gap: '10px'
-            }}>
-                {!canClose ? (
-                    <div style={{
-                        width: '32px', height: '32px', borderRadius: '50%',
-                        border: '2px solid #d97706',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        color: '#d97706', fontSize: '14px', fontWeight: 600,
-                        background: 'var(--bg-surface)'
-                    }}>
-                        {secondsLeft}
-                    </div>
-                ) : (
-                    <button
-                        onClick={() => navigate('/journal')}
-                        style={{
-                            width: '32px', height: '32px', borderRadius: '50%',
-                            background: 'var(--bg-surface)', border: '1px solid var(--border-surface)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            color: 'var(--text-secondary)', cursor: 'pointer'
+            {/* Ad Content Container */}
+            <div style={{ flex: 1, position: 'relative', background: '#000' }}>
+                {/* Image */}
+                {ad.imageUrl && (
+                    <img
+                        src={ad.imageUrl}
+                        alt="Daily Sponsor"
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        onError={(e) => {
+                            console.error('Ad image load fail');
+                            e.target.style.display = 'none';
                         }}
-                    >
-                        <X size={20} />
-                    </button>
+                    />
                 )}
-            </div>
 
-            {/* Ad Content */}
-            <div style={{
-                flex: 1, position: 'relative', overflow: 'hidden',
-                display: 'flex', alignItems: 'center', justifyContent: 'center'
-            }}>
-                <img
-                    src={adImage}
-                    alt="Prayer Journal Ad"
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
+                {/* Top Controls Overlay */}
+                <div style={{
+                    position: 'absolute', top: '24px', right: '24px', zIndex: 2100,
+                    display: 'flex', alignItems: 'center', gap: '12px'
+                }}>
+                    {!canClose ? (
+                        <div style={{
+                            width: '40px', height: '40px', borderRadius: '50%',
+                            background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(10px)',
+                            border: '1px solid rgba(255,255,255,0.2)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            color: 'white', fontWeight: 600
+                        }}>
+                            {secondsLeft}
+                        </div>
+                    ) : (
+                        <button
+                            onClick={() => navigate('/journal')}
+                            style={{
+                                width: '40px', height: '40px', borderRadius: '50%',
+                                background: 'white', border: 'none',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                color: '#000', cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+                            }}
+                        >
+                            <X size={20} />
+                        </button>
+                    )}
+                </div>
 
-                {/* Content Overlay */}
+                {/* Bottom Gradient and Text Overlay */}
                 <div style={{
                     position: 'absolute', bottom: 0, left: 0, right: 0,
-                    padding: '40px 24px', background: 'linear-gradient(to top, rgba(250,250,249,0.95), transparent)',
-                    display: 'flex', flexDirection: 'column', gap: '8px'
+                    padding: '80px 24px 32px 24px',
+                    background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%)',
+                    pointerEvents: 'none'
                 }}>
                     <div style={{
-                        background: '#fef3c7', color: '#d97706',
-                        padding: '4px 12px', borderRadius: '4px', fontSize: '11px',
-                        fontWeight: 500, width: 'fit-content', textTransform: 'uppercase', letterSpacing: '1px'
+                        background: 'rgba(6, 182, 212, 0.2)', color: '#67e8f9',
+                        padding: '4px 12px', borderRadius: '4px', fontSize: '12px',
+                        fontWeight: 600, width: 'fit-content', textTransform: 'uppercase',
+                        letterSpacing: '0.1em', marginBottom: '12px', border: '1px solid rgba(6, 182, 212, 0.3)'
                     }}>
                         Sponsored
                     </div>
-                    <h2 style={{ color: 'var(--text-primary)', fontSize: '28px', fontWeight: 300, marginBottom: '4px' }}>
-                        {isDefaultAd ? "The 2026 Physical Journal" : "Daily Inspiration"}
+                    <h2 style={{ color: 'white', fontSize: '28px', fontWeight: 600, marginBottom: '8px', lineHeight: 1.2 }}>
+                        {ad.title || "Daily Inspiration"}
                     </h2>
-                    <p style={{ color: 'var(--text-secondary)', fontSize: '15px', fontWeight: 300 }}>
-                        {isDefaultAd
-                            ? "Deepen your prayer life with our premium linen-bound journal. Limited edition now available."
-                            : "A special message from our community partners."}
+                    <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '15px', fontWeight: 300, lineHeight: 1.5 }}>
+                        {ad.content || "A special message from our community partners."}
                     </p>
                 </div>
             </div>
 
-            {/* Bottom Bar */}
+            {/* CTA Bar */}
             <div style={{
-                padding: '24px', borderTop: '1px solid var(--border-surface)',
-                display: 'flex', flexDirection: 'column', gap: '16px', background: 'var(--bg-surface)'
+                padding: '24px 24px calc(24px + env(safe-area-inset-bottom)) 24px',
+                background: 'white',
+                display: 'flex', flexDirection: 'column', gap: '16px'
             }}>
                 <button
                     onClick={() => {
-                        if (dailyPost.adLink) window.open(dailyPost.adLink, '_blank');
+                        if (ad.link) window.open(ad.link, '_blank');
                         navigate('/journal');
                     }}
                     style={{
-                        width: '100%', padding: '18px', borderRadius: '8px',
-                        background: '#06b6d4', color: 'var(--bg-surface)',
-                        fontWeight: 500, display: 'flex', alignItems: 'center',
-                        justifyContent: 'center', gap: '8px', border: 'none',
-                        cursor: 'pointer'
+                        width: '100%', padding: '18px', borderRadius: '12px',
+                        background: '#06b6d4', color: 'white',
+                        fontWeight: 600, fontSize: '16px', display: 'flex',
+                        alignItems: 'center', justifyContent: 'center', gap: '8px',
+                        border: 'none', cursor: 'pointer',
+                        boxShadow: '0 4px 20px rgba(6, 182, 212, 0.3)'
                     }}
                 >
-                    {isDefaultAd ? "Learn More & Continue" : "Continue to Journal"} <ArrowRight size={20} />
+                    Continue to Journal <ArrowRight size={20} />
                 </button>
             </div>
         </div>

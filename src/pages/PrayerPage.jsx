@@ -1,17 +1,24 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Play } from 'lucide-react';
+import { Play, Pause } from 'lucide-react';
 import PrayerHandsIcon from '../components/PrayerHandsIcon';
 import { getDailyContent, getLatestDailyContent } from '../firebase/firestore';
+import { useFlow } from '../context/FlowContext';
+import { useAuth } from '../context/AuthContext';
+import { markdownToSafeHTML } from '../utils/markdown';
 
 const PrayerPage = () => {
     const navigate = useNavigate();
+    const { currentUser } = useAuth();
     const [greeting, setGreeting] = useState('Good Morning');
     const [progress, setProgress] = useState(0);
     const [isHolding, setIsHolding] = useState(false);
     const [dailyContent, setDailyContent] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const { showNav } = useFlow();
+    const [isPlaying, setIsPlaying] = useState(false);
+    const audioRef = useRef(null);
     const intervalRef = useRef(null);
 
     useEffect(() => {
@@ -56,7 +63,12 @@ const PrayerPage = () => {
             setProgress((prev) => {
                 if (prev >= 100) {
                     clearInterval(intervalRef.current);
-                    navigate('/devotional');
+                    // Check if user is logged in before navigating
+                    if (currentUser) {
+                        navigate('/devotional');
+                    } else {
+                        navigate('/login');
+                    }
                     return 100;
                 }
                 return prev + 3;
@@ -68,6 +80,16 @@ const PrayerPage = () => {
         setIsHolding(false);
         clearInterval(intervalRef.current);
         setProgress(0);
+    };
+
+    const toggleAudio = () => {
+        if (!audioRef.current) return;
+        if (isPlaying) {
+            audioRef.current.pause();
+        } else {
+            audioRef.current.play();
+        }
+        setIsPlaying(!isPlaying);
     };
 
     // Get current date
@@ -82,7 +104,7 @@ const PrayerPage = () => {
             minHeight: '100vh',
             display: 'flex',
             flexDirection: 'column',
-            padding: '32px 24px 120px 24px'
+            padding: '32px 24px 220px 24px'
         }}>
             <div style={{ maxWidth: '448px', margin: '0 auto', width: '100%' }}>
                 {/* Date */}
@@ -180,18 +202,32 @@ const PrayerPage = () => {
                             Prayer
                         </h2>
 
-                        <button style={{
-                            width: '32px',
-                            height: '32px',
-                            backgroundColor: '#06b6d4',
-                            borderRadius: '50%',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            transition: 'background-color 0.2s'
-                        }}>
-                            <Play size={16} fill="white" color="white" style={{ marginLeft: '2px' }} />
-                        </button>
+                        {dailyContent?.prayer?.audioUrl && (
+                            <button
+                                onClick={toggleAudio}
+                                style={{
+                                    width: '32px',
+                                    height: '32px',
+                                    backgroundColor: '#06b6d4',
+                                    borderRadius: '50%',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    transition: 'background-color 0.2s'
+                                }}
+                            >
+                                <audio
+                                    ref={audioRef}
+                                    src={dailyContent.prayer.audioUrl}
+                                    onEnded={() => setIsPlaying(false)}
+                                />
+                                {isPlaying ? (
+                                    <Pause size={16} fill="white" color="white" />
+                                ) : (
+                                    <Play size={16} fill="white" color="white" style={{ marginLeft: '2px' }} />
+                                )}
+                            </button>
+                        )}
                     </div>
 
                     {loading ? (
@@ -203,14 +239,17 @@ const PrayerPage = () => {
                             Loading prayer...
                         </p>
                     ) : error ? null : (
-                        <p style={{
-                            fontSize: '16px',
-                            lineHeight: 1.8,
-                            color: 'var(--text-secondary)',
-                            fontWeight: 300
-                        }}>
-                            {dailyContent?.prayer?.text || 'Lord, thank you for this new day. Help me to trust You with all my heart and lean not on my own understanding. Guide my steps and fill me with Your peace that surpasses all understanding. Amen.'}
-                        </p>
+                        <div
+                            style={{
+                                fontSize: '16px',
+                                lineHeight: 1.8,
+                                color: 'var(--text-secondary)',
+                                fontWeight: 300
+                            }}
+                            dangerouslySetInnerHTML={{
+                                __html: markdownToSafeHTML(dailyContent?.prayer?.text || 'Lord, thank you for this new day. Help me to trust You with all my heart and lean not on my own understanding. Guide my steps and fill me with Your peace that surpasses all understanding. Amen.')
+                            }}
+                        />
                     )}
                 </div>
 

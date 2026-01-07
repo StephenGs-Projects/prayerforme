@@ -33,26 +33,26 @@ function App() {
             <CommunityProvider>
               <DesktopSplash />
               <Layout>
-              <Routes>
-                <Route path="/" element={<PrayerPage />} />
-                <Route path="/devotional" element={<DevotionalPage />} />
-                <Route path="/journal" element={<JournalPage />} />
-                <Route path="/community" element={<CommunityPage />} />
-                <Route path="/community/:id" element={<PrayerDetailPage />} />
-                <Route path="/my-requests" element={<UserRequestsPage />} />
-                <Route path="/more" element={<MorePage />} />
-                <Route path="/settings" element={<SettingsPage />} />
-                <Route path="/about" element={<AboutPage />} />
-                <Route path="/terms" element={<TermsPage />} />
-                <Route path="/privacy" element={<PrivacyPage />} />
-                <Route path="/history" element={<PastEntriesPage />} />
-                <Route path="/history/:id" element={<EntryDetailPage />} />
-                <Route path="/admin" element={<AdminPage />} />
-                <Route path="/ad" element={<AdPage />} />
-                <Route path="/install" element={<InstallPage />} />
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/signup" element={<SignupPage />} />
-              </Routes>
+                <Routes>
+                  <Route path="/" element={<PrayerPage />} />
+                  <Route path="/devotional" element={<DevotionalPage />} />
+                  <Route path="/journal" element={<JournalPage />} />
+                  <Route path="/community" element={<CommunityPage />} />
+                  <Route path="/community/:id" element={<PrayerDetailPage />} />
+                  <Route path="/my-requests" element={<UserRequestsPage />} />
+                  <Route path="/more" element={<MorePage />} />
+                  <Route path="/settings" element={<SettingsPage />} />
+                  <Route path="/about" element={<AboutPage />} />
+                  <Route path="/terms" element={<TermsPage />} />
+                  <Route path="/privacy" element={<PrivacyPage />} />
+                  <Route path="/entries" element={<PastEntriesPage />} />
+                  <Route path="/history/:id" element={<EntryDetailPage />} />
+                  <Route path="/admin" element={<AdminPage />} />
+                  <Route path="/ad" element={<AdPage />} />
+                  <Route path="/install" element={<InstallPage />} />
+                  <Route path="/login" element={<LoginPage />} />
+                  <Route path="/signup" element={<SignupPage />} />
+                </Routes>
               </Layout>
             </CommunityProvider>
           </FlowProvider>
