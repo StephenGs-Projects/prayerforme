@@ -52,11 +52,8 @@ service cloud.firestore {
     // Daily content collection
     match /dailyContent/{contentId} {
       // Everyone (including unauthenticated users) can read published content
-      // Supports both old 'published' field and new 'status' field
-      allow read: if resource.data.published == true || resource.data.status == 'published';
-
-      // Admins can read all content (including drafts)
-      allow read: if isAdmin();
+      // Also allow reading non-existent docs (resource == null) to avoid errors
+      allow read: if isAdmin() || resource == null || resource.data.published == true || resource.data.status == 'published';
 
       // Only admins can create, update, or delete daily content
       allow create, update, delete: if isAdmin();
@@ -65,7 +62,7 @@ service cloud.firestore {
     // Prayer requests collection
     match /prayerRequests/{requestId} {
       // Everyone can read approved prayer requests
-      allow read: if isAuthenticated() && resource.data.status == 'approved';
+      allow read: if isAdmin() || resource == null || resource.data.status == 'approved';
 
       // Admins can read all prayer requests
       allow read: if isAdmin();

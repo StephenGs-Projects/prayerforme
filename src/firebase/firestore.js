@@ -39,6 +39,11 @@ export const getDailyContent = async (date) => {
     }
     return null;
   } catch (error) {
+    // If permission is denied (e.g. guest trying to read a draft), 
+    // treat it as "not found" so the app can fall back to the latest published content.
+    if (error.code === 'permission-denied') {
+      return null;
+    }
     console.error('Error getting daily content:', error);
     throw error;
   }

@@ -67,8 +67,24 @@ const AdPage = () => {
         }}>
             {/* Ad Content Container */}
             <div style={{ flex: 1, position: 'relative', background: '#000' }}>
-                {/* Image */}
-                {ad.imageUrl && (
+                {/* Video or Image */}
+                {ad.videoUrl ? (
+                    <video
+                        src={ad.videoUrl}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        autoPlay
+                        muted
+                        loop
+                        playsInline
+                        onError={(e) => {
+                            console.error('Ad video load fail');
+                            // Fallback to image if video fails
+                            if (ad.imageUrl) {
+                                e.target.style.display = 'none';
+                            }
+                        }}
+                    />
+                ) : ad.imageUrl ? (
                     <img
                         src={ad.imageUrl}
                         alt="Daily Sponsor"
@@ -78,7 +94,7 @@ const AdPage = () => {
                             e.target.style.display = 'none';
                         }}
                     />
-                )}
+                ) : null}
 
                 {/* Top Controls Overlay */}
                 <div style={{

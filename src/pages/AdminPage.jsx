@@ -2179,6 +2179,7 @@ const AdminPage = () => {
                 ],
                 ad: {
                     imageUrl: formData.adImage || '',
+                    videoUrl: formData.adVideo || '',
                     link: formData.adLink || '',
                     title: formData.adTitle || '',
                     content: formData.adContent || '',
@@ -2221,6 +2222,7 @@ const AdminPage = () => {
                 prompt2: item.journalPrompts?.[1] || '',
                 prompt3: item.journalPrompts?.[2] || '',
                 adImage: item.ad?.imageUrl || null,
+                adVideo: item.ad?.videoUrl || null,
                 adLink: item.ad?.link || '',
                 showAd: item.ad?.show || false,
                 adDuration: item.ad?.duration || 5
@@ -2231,6 +2233,7 @@ const AdminPage = () => {
             if (status === 'published') {
                 setDailyPost({
                     adImage: formData.adImage,
+                    adVideo: formData.adVideo,
                     adLink: formData.adLink,
                     showAd: formData.showAd,
                     adDuration: formData.adDuration || 5,
@@ -2553,6 +2556,61 @@ const AdminPage = () => {
                                                             style={{ marginTop: '8px', fontSize: '12px', color: 'var(--accent-pink)' }}
                                                         >
                                                             Remove Image
+                                                        </button>
+                                                    )}
+                                                </div>
+
+                                                <div>
+                                                    <h4 style={{ fontSize: '14px', color: 'var(--text-tertiary)', marginBottom: '8px', textTransform: 'uppercase' }}>Video Ad (Optional)</h4>
+                                                    <div
+                                                        onClick={() => document.getElementById('ad-video-upload').click()}
+                                                        style={{
+                                                            width: '100%', height: '120px', borderRadius: 'var(--radius-sm)', border: '2px dashed rgba(255,255,255,0.1)',
+                                                            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                                                            overflow: 'hidden', position: 'relative'
+                                                        }}
+                                                    >
+                                                        {isUploadingMedia ? (
+                                                            <Loader2 size={24} className="animate-spin" color="var(--text-tertiary)" />
+                                                        ) : formData.adVideo ? (
+                                                            <video 
+                                                                src={formData.adVideo} 
+                                                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                                muted
+                                                                playsInline
+                                                            />
+                                                        ) : (
+                                                            <>
+                                                                <Upload size={24} color="var(--text-tertiary)" />
+                                                                <span style={{ fontSize: '14px', color: 'var(--text-tertiary)', marginTop: '8px' }}>Upload Ad Video</span>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                    <input
+                                                        id="ad-video-upload" type="file" accept="video/*" style={{ display: 'none' }}
+                                                        onChange={async (e) => {
+                                                            const file = e.target.files[0];
+                                                            if (!file) return;
+
+                                                            try {
+                                                                setIsUploadingMedia(true);
+                                                                const path = `ads/${Date.now()}_${file.name}`;
+                                                                const url = await uploadFile(file, path);
+                                                                setFormData({ ...formData, adVideo: url });
+                                                            } catch (error) {
+                                                                console.error('Error uploading ad video:', error);
+                                                                setAlertModal({ show: true, title: 'Upload Error', message: 'Failed to upload ad video.', type: 'error' });
+                                                            } finally {
+                                                                setIsUploadingMedia(false);
+                                                            }
+                                                        }}
+                                                    />
+                                                    {formData.adVideo && (
+                                                        <button
+                                                            onClick={() => setFormData({ ...formData, adVideo: null })}
+                                                            style={{ marginTop: '8px', fontSize: '12px', color: 'var(--accent-pink)' }}
+                                                        >
+                                                            Remove Video
                                                         </button>
                                                     )}
                                                 </div>
