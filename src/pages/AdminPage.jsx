@@ -2513,6 +2513,7 @@ const AdminPage = () => {
                                         {formData.showAd && (
                                             <>
                                                 <div>
+                                                    <h4 style={{ fontSize: '14px', color: 'var(--text-tertiary)', marginBottom: '8px', textTransform: 'uppercase' }}>Image Ad (Optional)</h4>
                                                     <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '8px' }}>Recommended Size: 1080x1920 (Vertical)</p>
                                                     <div
                                                         onClick={() => document.getElementById('ad-image-upload').click()}
