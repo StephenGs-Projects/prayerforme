@@ -50,10 +50,10 @@ const AdPage = () => {
         }
     }, [secondsLeft, loading]);
 
-    // Show CTA button after 5 seconds
+    // Show CTA button after 2 seconds
     useEffect(() => {
         if (!loading) {
-            const timer = setTimeout(() => setShowCTA(true), 5000);
+            const timer = setTimeout(() => setShowCTA(true), 2000);
             return () => clearTimeout(timer);
         }
     }, [loading]);
@@ -195,11 +195,15 @@ const AdPage = () => {
             {showCTA && (
                 <div style={{
                     position: 'absolute',
-                    bottom: '32px',
+                    bottom: 'calc(40px + env(safe-area-inset-bottom))',
                     left: '50%',
                     transform: 'translateX(-50%)',
                     zIndex: 2200,
-                    animation: 'slideUp 0.4s ease-out'
+                    animation: 'slideUp 0.4s ease-out',
+                    padding: '8px 16px',
+                    background: 'rgba(0, 0, 0, 0.3)',
+                    backdropFilter: 'blur(10px)',
+                    borderRadius: '60px'
                 }}>
                     <style>
                         {`
@@ -221,7 +225,7 @@ const AdPage = () => {
                             navigate('/journal');
                         }}
                         style={{
-                            padding: '14px 28px',
+                            padding: '12px 24px',
                             borderRadius: '50px',
                             background: '#06b6d4',
                             color: 'white',
@@ -233,7 +237,7 @@ const AdPage = () => {
                             gap: '8px',
                             border: 'none',
                             cursor: 'pointer',
-                            boxShadow: '0 8px 24px rgba(6, 182, 212, 0.4)',
+                            boxShadow: '0 8px 24px rgba(6, 182, 212, 0.5)',
                             whiteSpace: 'nowrap'
                         }}
                     >
