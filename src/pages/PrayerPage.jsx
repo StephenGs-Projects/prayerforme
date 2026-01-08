@@ -302,6 +302,17 @@ const PrayerPage = () => {
 
                         <PrayerHandsIcon size={32} color="var(--accent-cyan)" style={{ zIndex: 1 }} />
                     </div>
+
+                    {/* Hold instruction text */}
+                    <p style={{
+                        marginTop: '12px',
+                        color: 'var(--text-tertiary)',
+                        fontSize: '13px',
+                        fontWeight: 500,
+                        textAlign: 'center'
+                    }}>
+                        Hold Down Button
+                    </p>
                 </div>
             </div>
         </div>
