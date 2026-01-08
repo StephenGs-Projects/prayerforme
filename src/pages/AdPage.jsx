@@ -171,16 +171,46 @@ const AdPage = () => {
                 <div style={{
                     position: 'absolute', bottom: 0, left: 0, right: 0,
                     padding: '80px 24px 32px 24px',
-                    background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%)',
-                    pointerEvents: 'none'
+                    background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%)'
                 }}>
                     <div style={{
-                        background: 'rgba(6, 182, 212, 0.2)', color: '#67e8f9',
-                        padding: '4px 12px', borderRadius: '4px', fontSize: '12px',
-                        fontWeight: 600, width: 'fit-content', textTransform: 'uppercase',
-                        letterSpacing: '0.1em', marginBottom: '12px', border: '1px solid rgba(6, 182, 212, 0.3)'
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        marginBottom: '12px'
                     }}>
-                        Sponsored
+                        <div style={{
+                            background: 'rgba(6, 182, 212, 0.2)', color: '#67e8f9',
+                            padding: '4px 12px', borderRadius: '4px', fontSize: '12px',
+                            fontWeight: 600, textTransform: 'uppercase',
+                            letterSpacing: '0.1em', border: '1px solid rgba(6, 182, 212, 0.3)'
+                        }}>
+                            Sponsored
+                        </div>
+                        <button
+                            onClick={() => {
+                                if (ad.link) window.open(ad.link, '_blank');
+                                navigate('/journal');
+                            }}
+                            style={{
+                                padding: '6px 16px',
+                                borderRadius: '50px',
+                                background: '#06b6d4',
+                                color: 'white',
+                                fontWeight: 600,
+                                fontSize: '13px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '6px',
+                                border: 'none',
+                                cursor: 'pointer',
+                                boxShadow: '0 4px 12px rgba(6, 182, 212, 0.4)',
+                                whiteSpace: 'nowrap'
+                            }}
+                        >
+                            {ad.buttonText || 'Learn More'} <ArrowRight size={16} />
+                        </button>
                     </div>
                     <h2 style={{ color: 'white', fontSize: '28px', fontWeight: 600, marginBottom: '8px', lineHeight: 1.2 }}>
                         {ad.title || "Daily Inspiration"}
@@ -190,58 +220,6 @@ const AdPage = () => {
                     </p>
                 </div>
             </div>
-
-            {/* Floating CTA Pill Button */}
-            <div style={{
-                    position: 'fixed',
-                    bottom: 'calc(120px + env(safe-area-inset-bottom))',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    zIndex: 3000,
-                    padding: '8px 16px',
-                    background: 'rgba(0, 0, 0, 0.5)',
-                    backdropFilter: 'blur(10px)',
-                    borderRadius: '60px'
-                }}>
-                    <style>
-                        {`
-                            @keyframes slideUp {
-                                from {
-                                    opacity: 0;
-                                    transform: translateX(-50%) translateY(20px);
-                                }
-                                to {
-                                    opacity: 1;
-                                    transform: translateX(-50%) translateY(0);
-                                }
-                            }
-                        `}
-                    </style>
-                    <button
-                        onClick={() => {
-                            if (ad.link) window.open(ad.link, '_blank');
-                            navigate('/journal');
-                        }}
-                        style={{
-                            padding: '12px 24px',
-                            borderRadius: '50px',
-                            background: '#06b6d4',
-                            color: 'white',
-                            fontWeight: 600,
-                            fontSize: '15px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '8px',
-                            border: 'none',
-                            cursor: 'pointer',
-                            boxShadow: '0 8px 24px rgba(6, 182, 212, 0.5)',
-                            whiteSpace: 'nowrap'
-                        }}
-                    >
-                        {ad.buttonText || 'Learn More'} <ArrowRight size={18} />
-                    </button>
-                </div>
         </div>
     );
 };
