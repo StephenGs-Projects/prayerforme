@@ -184,7 +184,7 @@ const AdPage = () => {
 
             {/* CTA Bar */}
             <div style={{
-                padding: '24px 24px calc(24px + env(safe-area-inset-bottom)) 24px',
+                padding: '16px 20px calc(16px + env(safe-area-inset-bottom)) 20px',
                 background: 'rgba(0, 0, 0, 0.6)',
                 backdropFilter: 'blur(20px)',
                 borderTop: '1px solid rgba(255, 255, 255, 0.1)',
@@ -196,15 +196,15 @@ const AdPage = () => {
                         navigate('/journal');
                     }}
                     style={{
-                        width: '100%', padding: '18px', borderRadius: '12px',
+                        width: '100%', padding: '14px', borderRadius: '10px',
                         background: '#06b6d4', color: 'white',
-                        fontWeight: 600, fontSize: '16px', display: 'flex',
-                        alignItems: 'center', justifyContent: 'center', gap: '8px',
+                        fontWeight: 600, fontSize: '15px', display: 'flex',
+                        alignItems: 'center', justifyContent: 'center', gap: '6px',
                         border: 'none', cursor: 'pointer',
                         boxShadow: '0 4px 20px rgba(6, 182, 212, 0.3)'
                     }}
                 >
-                    {ad.buttonText || 'Learn More'} <ArrowRight size={20} />
+                    {ad.buttonText || 'Learn More'} <ArrowRight size={18} />
                 </button>
             </div>
         </div>
