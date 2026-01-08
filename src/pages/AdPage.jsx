@@ -185,7 +185,9 @@ const AdPage = () => {
             {/* CTA Bar */}
             <div style={{
                 padding: '24px 24px calc(24px + env(safe-area-inset-bottom)) 24px',
-                background: 'white',
+                background: 'rgba(0, 0, 0, 0.6)',
+                backdropFilter: 'blur(20px)',
+                borderTop: '1px solid rgba(255, 255, 255, 0.1)',
                 display: 'flex', flexDirection: 'column', gap: '16px'
             }}>
                 <button
@@ -202,7 +204,7 @@ const AdPage = () => {
                         boxShadow: '0 4px 20px rgba(6, 182, 212, 0.3)'
                     }}
                 >
-                    {ad.buttonText || 'Continue to Journal'} <ArrowRight size={20} />
+                    {ad.buttonText || 'Learn More'} <ArrowRight size={20} />
                 </button>
             </div>
         </div>

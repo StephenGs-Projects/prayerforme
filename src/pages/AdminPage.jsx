@@ -2651,20 +2651,6 @@ const AdminPage = () => {
                                                     </div>
                                                 </div>
 
-                                                <div style={{ display: 'flex', gap: '20px' }}>
-                                                    <div style={{ flex: 1 }}>
-                                                        <h4 style={{ fontSize: '14px', color: 'var(--text-tertiary)', marginBottom: '8px', textTransform: 'uppercase' }}>Ad Destination Link</h4>
-                                                        <input
-                                                            type="text"
-                                                            placeholder="https://yourstore.com/product"
-                                                            className="glass"
-                                                            value={formData.adLink || ''}
-                                                            onChange={e => setFormData({ ...formData, adLink: e.target.value })}
-                                                            style={{ width: '100%', padding: '16px', borderRadius: 'var(--radius-md)', border: 'none', color: 'var(--text-primary)', fontFamily: 'inherit' }}
-                                                        />
-                                                    </div>
-                                                </div>
-
                                                 <div>
                                                     <h4 style={{ fontSize: '14px', color: 'var(--text-tertiary)', marginBottom: '8px', textTransform: 'uppercase' }}>Ad Text (Optional)</h4>
                                                     <textarea
@@ -2680,13 +2666,27 @@ const AdminPage = () => {
                                                     <h4 style={{ fontSize: '14px', color: 'var(--text-tertiary)', marginBottom: '8px', textTransform: 'uppercase' }}>Button Text (Optional)</h4>
                                                     <input
                                                         type="text"
-                                                        placeholder="Continue to Journal"
+                                                        placeholder="Learn More"
                                                         className="glass"
                                                         value={formData.adButtonText || ''}
                                                         onChange={e => setFormData({ ...formData, adButtonText: e.target.value })}
                                                         style={{ width: '100%', padding: '16px', borderRadius: 'var(--radius-md)', border: 'none', color: 'var(--text-primary)', fontFamily: 'inherit' }}
                                                     />
-                                                    <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '8px' }}>Default: "Continue to Journal"</p>
+                                                    <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '8px' }}>Default: "Learn More"</p>
+                                                </div>
+
+                                                <div style={{ display: 'flex', gap: '20px' }}>
+                                                    <div style={{ flex: 1 }}>
+                                                        <h4 style={{ fontSize: '14px', color: 'var(--text-tertiary)', marginBottom: '8px', textTransform: 'uppercase' }}>Ad Destination Link</h4>
+                                                        <input
+                                                            type="text"
+                                                            placeholder="https://yourstore.com/product"
+                                                            className="glass"
+                                                            value={formData.adLink || ''}
+                                                            onChange={e => setFormData({ ...formData, adLink: e.target.value })}
+                                                            style={{ width: '100%', padding: '16px', borderRadius: 'var(--radius-md)', border: 'none', color: 'var(--text-primary)', fontFamily: 'inherit' }}
+                                                        />
+                                                    </div>
                                                 </div>
                                             </>
                                         )}
