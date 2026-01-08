@@ -170,14 +170,14 @@ const AdPage = () => {
                 {/* Bottom Gradient and Text Overlay */}
                 <div style={{
                     position: 'absolute', bottom: 0, left: 0, right: 0,
-                    padding: '80px 24px 32px 24px',
+                    padding: `${ad.title || ad.content ? '80px' : '32px'} 24px 32px 24px`,
                     background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%)'
                 }}>
                     <div style={{
                         display: 'flex',
                         alignItems: 'center',
                         gap: '12px',
-                        marginBottom: '12px'
+                        marginBottom: (ad.title || ad.content) ? '12px' : '0'
                     }}>
                         <div style={{
                             background: 'rgba(6, 182, 212, 0.2)', color: '#67e8f9',
@@ -212,12 +212,16 @@ const AdPage = () => {
                             {ad.buttonText || 'Learn More'} <ArrowRight size={16} />
                         </button>
                     </div>
-                    <h2 style={{ color: 'white', fontSize: '28px', fontWeight: 600, marginBottom: '8px', lineHeight: 1.2 }}>
-                        {ad.title || "Daily Inspiration"}
-                    </h2>
-                    <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '15px', fontWeight: 300, lineHeight: 1.5 }}>
-                        {ad.content || "A special message from our community partners."}
-                    </p>
+                    {ad.title && (
+                        <h2 style={{ color: 'white', fontSize: '28px', fontWeight: 600, marginBottom: '8px', lineHeight: 1.2 }}>
+                            {ad.title}
+                        </h2>
+                    )}
+                    {ad.content && (
+                        <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '15px', fontWeight: 300, lineHeight: 1.5 }}>
+                            {ad.content}
+                        </p>
+                    )}
                 </div>
             </div>
         </div>
