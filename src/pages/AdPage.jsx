@@ -11,6 +11,7 @@ const AdPage = () => {
     const [secondsLeft, setSecondsLeft] = useState(5);
     const [canClose, setCanClose] = useState(false);
     const [totalDuration, setTotalDuration] = useState(5);
+    const [showCTA, setShowCTA] = useState(false);
 
     useEffect(() => {
         const fetchDailyContent = async () => {
@@ -48,6 +49,14 @@ const AdPage = () => {
             setCanClose(true);
         }
     }, [secondsLeft, loading]);
+
+    // Show CTA button after 5 seconds
+    useEffect(() => {
+        if (!loading) {
+            const timer = setTimeout(() => setShowCTA(true), 5000);
+            return () => clearTimeout(timer);
+        }
+    }, [loading]);
 
     if (loading) return (
         <div style={{
@@ -182,31 +191,56 @@ const AdPage = () => {
                 </div>
             </div>
 
-            {/* CTA Bar */}
-            <div style={{
-                padding: '16px 20px calc(16px + env(safe-area-inset-bottom)) 20px',
-                background: 'rgba(0, 0, 0, 0.6)',
-                backdropFilter: 'blur(20px)',
-                borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-                display: 'flex', flexDirection: 'column', gap: '16px'
-            }}>
-                <button
-                    onClick={() => {
-                        if (ad.link) window.open(ad.link, '_blank');
-                        navigate('/journal');
-                    }}
-                    style={{
-                        width: '100%', padding: '14px', borderRadius: '10px',
-                        background: '#06b6d4', color: 'white',
-                        fontWeight: 600, fontSize: '15px', display: 'flex',
-                        alignItems: 'center', justifyContent: 'center', gap: '6px',
-                        border: 'none', cursor: 'pointer',
-                        boxShadow: '0 4px 20px rgba(6, 182, 212, 0.3)'
-                    }}
-                >
-                    {ad.buttonText || 'Learn More'} <ArrowRight size={18} />
-                </button>
-            </div>
+            {/* Floating CTA Pill Button */}
+            {showCTA && (
+                <div style={{
+                    position: 'absolute',
+                    bottom: '32px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    zIndex: 2200,
+                    animation: 'slideUp 0.4s ease-out'
+                }}>
+                    <style>
+                        {`
+                            @keyframes slideUp {
+                                from {
+                                    opacity: 0;
+                                    transform: translateX(-50%) translateY(20px);
+                                }
+                                to {
+                                    opacity: 1;
+                                    transform: translateX(-50%) translateY(0);
+                                }
+                            }
+                        `}
+                    </style>
+                    <button
+                        onClick={() => {
+                            if (ad.link) window.open(ad.link, '_blank');
+                            navigate('/journal');
+                        }}
+                        style={{
+                            padding: '14px 28px',
+                            borderRadius: '50px',
+                            background: '#06b6d4',
+                            color: 'white',
+                            fontWeight: 600,
+                            fontSize: '15px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '8px',
+                            border: 'none',
+                            cursor: 'pointer',
+                            boxShadow: '0 8px 24px rgba(6, 182, 212, 0.4)',
+                            whiteSpace: 'nowrap'
+                        }}
+                    >
+                        {ad.buttonText || 'Learn More'} <ArrowRight size={18} />
+                    </button>
+                </div>
+            )}
         </div>
     );
 };
