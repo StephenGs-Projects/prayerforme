@@ -2147,8 +2147,8 @@ const AdminPage = () => {
 
         // Validate Ad content if toggle is ON
         if (formData.showAd) {
-            if (!formData.adImage) {
-                setAlertModal({ show: true, title: 'Validation Error', message: 'Ad Image is required when "Include Ad Today" is enabled.\n\nPlease upload an ad image or turn off the ad toggle.', type: 'error' });
+            if (!formData.adImage && !formData.adVideo) {
+                setAlertModal({ show: true, title: 'Validation Error', message: 'Ad Image or Video is required when "Include Ad Today" is enabled.\n\nPlease upload an ad image/video or turn off the ad toggle.', type: 'error' });
                 return;
             }
             if (!formData.adLink || !formData.adLink.trim()) {
