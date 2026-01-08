@@ -193,14 +193,13 @@ const AdPage = () => {
 
             {/* Floating CTA Pill Button */}
             <div style={{
-                    position: 'absolute',
-                    bottom: 'calc(40px + env(safe-area-inset-bottom))',
+                    position: 'fixed',
+                    bottom: 'calc(120px + env(safe-area-inset-bottom))',
                     left: '50%',
                     transform: 'translateX(-50%)',
-                    zIndex: 2200,
-                    animation: 'slideUp 0.4s ease-out',
+                    zIndex: 3000,
                     padding: '8px 16px',
-                    background: 'rgba(0, 0, 0, 0.3)',
+                    background: 'rgba(0, 0, 0, 0.5)',
                     backdropFilter: 'blur(10px)',
                     borderRadius: '60px'
                 }}>
