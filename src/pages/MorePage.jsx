@@ -2,12 +2,60 @@ import React, { useState } from 'react';
 import { Share2, FileText, MapPin, Settings as SettingsIcon, ChevronRight, ChevronDown, Moon, Sun, Smartphone, History, Info, Mail, MessageSquare, Shield, ExternalLink } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import PrayerHandsIcon from '../components/PrayerHandsIcon';
 
 const MorePage = () => {
     const { theme, setTheme, fontSize, setFontSize } = useTheme();
+    const { currentUser } = useAuth();
     const navigate = useNavigate();
     const [expandedSection, setExpandedSection] = useState(null);
+
+    const handleShareApp = async () => {
+        const shareData = {
+            title: 'Prayer For Me',
+            text: 'Take a look at this prayer website!',
+            url: 'https://app.prayerforme.org'
+        };
+
+        try {
+            if (navigator.share) {
+                await navigator.share(shareData);
+            } else {
+                // Fallback: copy to clipboard
+                await navigator.clipboard.writeText(`${shareData.text} ${shareData.url}`);
+                alert('Link copied to clipboard!');
+            }
+        } catch (err) {
+            // User cancelled or error occurred
+            if (err.name !== 'AbortError') {
+                console.error('Share error:', err);
+            }
+        }
+    };
+
+    const handleSharePrayerRequest = async () => {
+        const shareData = {
+            title: 'Prayer For Me',
+            text: 'Take a look at this prayer website!',
+            url: 'https://prayerforme.org'
+        };
+
+        try {
+            if (navigator.share) {
+                await navigator.share(shareData);
+            } else {
+                // Fallback: copy to clipboard
+                await navigator.clipboard.writeText(`${shareData.text} ${shareData.url}`);
+                alert('Link copied to clipboard!');
+            }
+        } catch (err) {
+            // User cancelled or error occurred
+            if (err.name !== 'AbortError') {
+                console.error('Share error:', err);
+            }
+        }
+    };
 
     const SectionHeader = ({ title }) => (
         <h2 style={{
@@ -241,8 +289,8 @@ const MorePage = () => {
                 <div style={{ marginBottom: '48px' }}>
                     <SectionHeader title="Share" />
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                        <MenuItem icon={Share2} label="Share App to Friend" action={() => { }} />
-                        <MenuItem icon={Share2} label="Share Prayer Request" action={() => { }} />
+                        <MenuItem icon={Share2} label="Share App to Friend" action={handleShareApp} />
+                        <MenuItem icon={Share2} label="Share Prayer Request" action={handleSharePrayerRequest} />
                     </div>
                 </div>
 
@@ -290,17 +338,16 @@ const MorePage = () => {
                 <div style={{ marginBottom: '48px' }}>
                     <SectionHeader title="Get in Touch" />
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                        <MenuItem icon={Mail} label="Contact Us" action={() => { }} />
-                        <MenuItem icon={MessageSquare} label="Leave Feedback" action={() => { }} />
-                    </div>
-                </div>
-
-                {/* Others Section */}
-                <div style={{ marginBottom: '48px' }}>
-                    <SectionHeader title="Others" />
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                        <MenuItem icon={FileText} label="Terms of Use" action={() => navigate('/terms')} />
-                        <MenuItem icon={Shield} label="Privacy Policy" action={() => navigate('/privacy')} />
+                        <MenuItem
+                            icon={Mail}
+                            label="Contact Us"
+                            action={() => window.open(`https://prayerforme.fillout.com/app-contact-us?email=${encodeURIComponent(currentUser?.email || '')}`, '_blank')}
+                        />
+                        <MenuItem
+                            icon={MessageSquare}
+                            label="Leave Feedback"
+                            action={() => window.open(`https://prayerforme.fillout.com/app-feedback?email=${encodeURIComponent(currentUser?.email || '')}`, '_blank')}
+                        />
                     </div>
                 </div>
             </div>

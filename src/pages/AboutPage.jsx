@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, FileText, Shield, ChevronRight } from 'lucide-react';
 
 const AboutPage = () => {
     const navigate = useNavigate();
@@ -31,6 +31,61 @@ const AboutPage = () => {
                 <p>
                     Thank you for being a part of this journey. Together, we can make a difference through the power of prayer.
                 </p>
+            </div>
+
+            {/* Legal Links */}
+            <div style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <button
+                    onClick={() => navigate('/terms')}
+                    style={{
+                        width: '100%',
+                        background: 'var(--bg-surface)',
+                        border: '1px solid var(--border-surface)',
+                        borderRadius: '12px',
+                        padding: '20px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        transition: 'border-color 0.2s',
+                        cursor: 'pointer'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--border-accent)'}
+                    onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-surface)'}
+                >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                        <FileText size={20} color="#06b6d4" strokeWidth={2} />
+                        <span style={{ fontSize: '16px', fontWeight: 300, color: 'var(--text-primary)' }}>
+                            Terms of Use
+                        </span>
+                    </div>
+                    <ChevronRight size={20} color="var(--text-light)" strokeWidth={2} />
+                </button>
+
+                <button
+                    onClick={() => navigate('/privacy')}
+                    style={{
+                        width: '100%',
+                        background: 'var(--bg-surface)',
+                        border: '1px solid var(--border-surface)',
+                        borderRadius: '12px',
+                        padding: '20px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        transition: 'border-color 0.2s',
+                        cursor: 'pointer'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--border-accent)'}
+                    onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-surface)'}
+                >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                        <Shield size={20} color="#06b6d4" strokeWidth={2} />
+                        <span style={{ fontSize: '16px', fontWeight: 300, color: 'var(--text-primary)' }}>
+                            Privacy Policy
+                        </span>
+                    </div>
+                    <ChevronRight size={20} color="var(--text-light)" strokeWidth={2} />
+                </button>
             </div>
         </div>
     );

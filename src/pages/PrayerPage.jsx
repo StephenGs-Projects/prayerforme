@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Play, Pause } from 'lucide-react';
+import { Play, Pause, Share2 } from 'lucide-react';
 import PrayerHandsIcon from '../components/PrayerHandsIcon';
 import { getDailyContent, getLatestDailyContent } from '../firebase/firestore';
 import { useFlow } from '../context/FlowContext';
@@ -92,6 +92,29 @@ const PrayerPage = () => {
         setIsPlaying(!isPlaying);
     };
 
+    const handleShare = async () => {
+        const shareData = {
+            title: 'Prayer For Me',
+            text: 'Take a look at this prayer website!',
+            url: 'https://app.prayerforme.org'
+        };
+
+        try {
+            if (navigator.share) {
+                await navigator.share(shareData);
+            } else {
+                // Fallback: copy to clipboard
+                await navigator.clipboard.writeText(`${shareData.text} ${shareData.url}`);
+                alert('Link copied to clipboard!');
+            }
+        } catch (err) {
+            // User cancelled or error occurred
+            if (err.name !== 'AbortError') {
+                console.error('Share error:', err);
+            }
+        }
+    };
+
     // Get current date
     const currentDate = new Date().toLocaleDateString('en-US', {
         month: 'long',
@@ -104,8 +127,41 @@ const PrayerPage = () => {
             minHeight: '100vh',
             display: 'flex',
             flexDirection: 'column',
-            padding: '32px 24px 220px 24px'
+            padding: '32px 24px 220px 24px',
+            position: 'relative'
         }}>
+            {/* Share Button */}
+            <button
+                onClick={handleShare}
+                style={{
+                    position: 'fixed',
+                    top: '32px',
+                    right: '24px',
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '50%',
+                    backgroundColor: 'var(--accent-cyan)',
+                    border: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 8px rgba(6, 182, 212, 0.3)',
+                    transition: 'all 0.2s ease',
+                    zIndex: 100
+                }}
+                onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'scale(1.1)';
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(6, 182, 212, 0.5)';
+                }}
+                onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'scale(1)';
+                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(6, 182, 212, 0.3)';
+                }}
+            >
+                <Share2 size={20} color="white" />
+            </button>
+
             <div style={{ maxWidth: '448px', margin: '0 auto', width: '100%' }}>
                 {/* Date */}
                 <p style={{
@@ -260,6 +316,7 @@ const PrayerPage = () => {
                     left: '50%',
                     transform: 'translateX(-50%)',
                     display: 'flex',
+                    flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center'
                 }}>
@@ -307,7 +364,7 @@ const PrayerPage = () => {
                     <p style={{
                         marginTop: '12px',
                         color: 'var(--text-tertiary)',
-                        fontSize: '13px',
+                        fontSize: '11px',
                         fontWeight: 500,
                         textAlign: 'center'
                     }}>
