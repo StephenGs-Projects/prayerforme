@@ -192,8 +192,7 @@ const AdPage = () => {
             </div>
 
             {/* Floating CTA Pill Button */}
-            {showCTA && (
-                <div style={{
+            <div style={{
                     position: 'absolute',
                     bottom: 'calc(40px + env(safe-area-inset-bottom))',
                     left: '50%',
@@ -244,7 +243,6 @@ const AdPage = () => {
                         {ad.buttonText || 'Learn More'} <ArrowRight size={18} />
                     </button>
                 </div>
-            )}
         </div>
     );
 };
