@@ -10,6 +10,7 @@ const AdPage = () => {
     const [error, setError] = useState(null);
     const [secondsLeft, setSecondsLeft] = useState(5);
     const [canClose, setCanClose] = useState(false);
+    const [totalDuration, setTotalDuration] = useState(5);
 
     useEffect(() => {
         const fetchDailyContent = async () => {
@@ -21,7 +22,9 @@ const AdPage = () => {
 
                 if (content?.ad?.show) {
                     setDailyContent(content);
-                    setSecondsLeft(content.ad.duration || 5);
+                    const duration = content.ad.duration || 5;
+                    setSecondsLeft(duration);
+                    setTotalDuration(duration);
                 } else {
                     console.log('No ad for today, skipping');
                     navigate('/journal');
@@ -102,26 +105,55 @@ const AdPage = () => {
                     display: 'flex', alignItems: 'center', gap: '12px'
                 }}>
                     {!canClose ? (
-                        <div style={{
-                            width: '40px', height: '40px', borderRadius: '50%',
-                            background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(10px)',
-                            border: '1px solid rgba(255,255,255,0.2)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            color: 'white', fontWeight: 600
-                        }}>
-                            {secondsLeft}
+                        <div style={{ position: 'relative', width: '48px', height: '48px' }}>
+                            {/* Circular Progress Ring */}
+                            <svg style={{ position: 'absolute', top: 0, left: 0, transform: 'rotate(-90deg)' }} width="48" height="48">
+                                {/* Background circle */}
+                                <circle
+                                    cx="24"
+                                    cy="24"
+                                    r="20"
+                                    stroke="rgba(255,255,255,0.2)"
+                                    strokeWidth="3"
+                                    fill="rgba(0,0,0,0.4)"
+                                    style={{ backdropFilter: 'blur(10px)' }}
+                                />
+                                {/* Progress circle */}
+                                <circle
+                                    cx="24"
+                                    cy="24"
+                                    r="20"
+                                    stroke="#67e8f9"
+                                    strokeWidth="3"
+                                    fill="none"
+                                    strokeLinecap="round"
+                                    strokeDasharray={`${2 * Math.PI * 20}`}
+                                    strokeDashoffset={`${2 * Math.PI * 20 * (1 - secondsLeft / totalDuration)}`}
+                                    style={{ transition: 'stroke-dashoffset 1s linear' }}
+                                />
+                            </svg>
+                            {/* Countdown number */}
+                            <div style={{
+                                position: 'absolute', top: 0, left: 0, width: '48px', height: '48px',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                color: 'white', fontWeight: 700, fontSize: '16px'
+                            }}>
+                                {secondsLeft}
+                            </div>
                         </div>
                     ) : (
                         <button
                             onClick={() => navigate('/journal')}
                             style={{
-                                width: '40px', height: '40px', borderRadius: '50%',
+                                width: '48px', height: '48px', borderRadius: '50%',
                                 background: 'white', border: 'none',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                color: '#000', cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+                                color: '#000', cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                                transition: 'all 0.3s ease',
+                                animation: 'pulse 2s ease-in-out infinite'
                             }}
                         >
-                            <X size={20} />
+                            <X size={22} />
                         </button>
                     )}
                 </div>
@@ -170,7 +202,7 @@ const AdPage = () => {
                         boxShadow: '0 4px 20px rgba(6, 182, 212, 0.3)'
                     }}
                 >
-                    Continue to Journal <ArrowRight size={20} />
+                    {ad.buttonText || 'Continue to Journal'} <ArrowRight size={20} />
                 </button>
             </div>
         </div>

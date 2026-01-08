@@ -2057,6 +2057,7 @@ const AdminPage = () => {
                     adLink: item.ad?.link || '',
                     adTitle: item.ad?.title || '',
                     adContent: item.ad?.content || '',
+                    adButtonText: item.ad?.buttonText || '',
                     showAd: item.ad?.show || false,
                     adDuration: item.ad?.duration || 5
                 }));
@@ -2183,6 +2184,7 @@ const AdminPage = () => {
                     link: formData.adLink || '',
                     title: formData.adTitle || '',
                     content: formData.adContent || '',
+                    buttonText: formData.adButtonText || '',
                     show: formData.showAd || false,
                     duration: formData.adDuration || 5
                 }
@@ -2224,6 +2226,9 @@ const AdminPage = () => {
                 adImage: item.ad?.imageUrl || null,
                 adVideo: item.ad?.videoUrl || null,
                 adLink: item.ad?.link || '',
+                adTitle: item.ad?.title || '',
+                adContent: item.ad?.content || '',
+                adButtonText: item.ad?.buttonText || '',
                 showAd: item.ad?.show || false,
                 adDuration: item.ad?.duration || 5
             }));
@@ -2235,6 +2240,9 @@ const AdminPage = () => {
                     adImage: formData.adImage,
                     adVideo: formData.adVideo,
                     adLink: formData.adLink,
+                    adTitle: formData.adTitle,
+                    adContent: formData.adContent,
+                    adButtonText: formData.adButtonText,
                     showAd: formData.showAd,
                     adDuration: formData.adDuration || 5,
                     title: formData.devotionalTitle,
@@ -2666,6 +2674,19 @@ const AdminPage = () => {
                                                         onChange={e => setFormData({ ...formData, adContent: e.target.value })}
                                                         style={{ width: '100%', height: '80px', padding: '16px', borderRadius: 'var(--radius-md)', border: 'none', color: 'var(--text-primary)', fontFamily: 'inherit', resize: 'none' }}
                                                     />
+                                                </div>
+
+                                                <div>
+                                                    <h4 style={{ fontSize: '14px', color: 'var(--text-tertiary)', marginBottom: '8px', textTransform: 'uppercase' }}>Button Text (Optional)</h4>
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Continue to Journal"
+                                                        className="glass"
+                                                        value={formData.adButtonText || ''}
+                                                        onChange={e => setFormData({ ...formData, adButtonText: e.target.value })}
+                                                        style={{ width: '100%', padding: '16px', borderRadius: 'var(--radius-md)', border: 'none', color: 'var(--text-primary)', fontFamily: 'inherit' }}
+                                                    />
+                                                    <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '8px' }}>Default: "Continue to Journal"</p>
                                                 </div>
                                             </>
                                         )}
