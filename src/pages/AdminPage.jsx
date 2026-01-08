@@ -2074,7 +2074,6 @@ const AdminPage = () => {
     }, []);
 
     const initialForm = {
-        date: '',
         verseText: '',
         verseReference: '',
         prayerText: '',
@@ -2098,7 +2097,16 @@ const AdminPage = () => {
     const [isUploadingMedia, setIsUploadingMedia] = useState(false);
 
     const handleCreateNew = () => { setEditingId(null); setFormData(initialForm); setViewMode('editor'); };
-    const handleEdit = (post) => { setEditingId(post.id); setFormData({ ...initialForm, ...post, title: post.devotionalTitle || post.title }); setViewMode('editor'); };
+    const handleEdit = (post) => {
+        setEditingId(post.id);
+        // For scheduled posts, set scheduledDateTime to the post's date
+        const updatedPost = { ...initialForm, ...post, title: post.devotionalTitle || post.title };
+        if (post.status === 'scheduled' && post.date) {
+            updatedPost.scheduledDateTime = post.date;
+        }
+        setFormData(updatedPost);
+        setViewMode('editor');
+    };
 
     const handleDelete = (id) => {
         setConfirmModal({
@@ -2125,12 +2133,6 @@ const AdminPage = () => {
     const { setDailyPost } = useCommunity();
 
     const handleSavePost = async () => {
-        // Validate required fields
-        if (!formData.date) {
-            setAlertModal({ show: true, title: 'Validation Error', message: 'Please select a date for this content.', type: 'error' });
-            return;
-        }
-
         // Validate scheduled content
         if (formData.publishStatus === 'scheduled') {
             if (!formData.scheduledDateTime) {
@@ -2190,20 +2192,23 @@ const AdminPage = () => {
                 }
             };
 
-            // Prepare publish date for scheduled content (12am Central Time)
+            // Calculate content date based on publish status
+            let contentDate;
             let publishDate = null;
+
             if (formData.publishStatus === 'scheduled') {
-                // Parse the date string (YYYY-MM-DD format from date input)
-                const dateStr = formData.scheduledDateTime;
+                // Use scheduled date as content date
+                contentDate = formData.scheduledDateTime;
                 // Create UTC date at 6:00 AM (which is 12:00 AM CST / UTC-6)
-                // Note: During CDT (Daylight Saving Time), Central is UTC-5, so this would be 5:00 AM UTC
-                // Using 6:00 AM UTC as standard (CST)
-                publishDate = new Date(`${dateStr}T06:00:00Z`);
+                publishDate = new Date(`${contentDate}T06:00:00Z`);
+            } else {
+                // For "Publish Now" and "Draft", use today's date
+                contentDate = new Date().toISOString().slice(0, 10);
             }
 
             // Save to Firestore with scheduling support
             await saveDailyContentWithSchedule(
-                formData.date,
+                contentDate,
                 contentData,
                 formData.publishStatus,
                 publishDate
@@ -2458,11 +2463,6 @@ const AdminPage = () => {
                             </div>
 
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', maxWidth: '800px', margin: '0 auto' }}>
-                                <section>
-                                    <h3 style={{ fontSize: '14px', color: 'var(--text-tertiary)', marginBottom: '8px', textTransform: 'uppercase' }}>Content Date</h3>
-                                    <input type="date" className="glass" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} style={{ width: '100%', padding: '16px', borderRadius: 'var(--radius-md)', border: 'none', color: 'var(--text-primary)', fontFamily: 'inherit' }} />
-                                </section>
-
                                 {/* Publishing Options */}
                                 <ScheduleSelector
                                     publishStatus={formData.publishStatus}
