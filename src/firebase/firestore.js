@@ -21,12 +21,78 @@ import { db } from './config';
 // ==================== DAILY CONTENT ====================
 
 /**
+ * Get scheduled content that should be published
+ * @returns {Promise<Array>} Content ready to publish
+ */
+export const getScheduledContentToPublish = async () => {
+  try {
+    const now = new Date();
+    const q = query(
+      collection(db, 'dailyContent'),
+      where('status', '==', 'scheduled'),
+      where('publishDate', '<=', now)
+    );
+
+    const querySnapshot = await getDocs(q);
+
+    return querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+  } catch (error) {
+    console.error('Error getting scheduled content to publish:', error);
+    return []; // Return empty array on error to prevent breaking content fetch
+  }
+};
+
+/**
+ * Publish scheduled content
+ * @param {string} contentId - Content ID
+ * @returns {Promise<void>}
+ */
+export const publishScheduledContent = async (contentId) => {
+  try {
+    const docRef = doc(db, 'dailyContent', contentId);
+    await updateDoc(docRef, {
+      status: 'published',
+      published: true,
+      publishedAt: serverTimestamp()
+    });
+  } catch (error) {
+    console.error('Error publishing scheduled content:', error);
+    throw error;
+  }
+};
+
+/**
+ * Check and auto-publish scheduled content
+ * @returns {Promise<number>} Number of content pieces published
+ */
+export const checkAndPublishScheduledContent = async () => {
+  try {
+    const contentToPublish = await getScheduledContentToPublish();
+
+    for (const content of contentToPublish) {
+      await publishScheduledContent(content.id);
+    }
+
+    return contentToPublish.length;
+  } catch (error) {
+    console.error('Error auto-publishing scheduled content:', error);
+    return 0; // Return 0 on error to prevent breaking content fetch
+  }
+};
+
+/**
  * Get daily content (prayer, verse, devotional) for a specific date
  * @param {string} date - Date in YYYY-MM-DD format
  * @returns {Promise<Object|null>} Daily content object or null
  */
 export const getDailyContent = async (date) => {
   try {
+    // Check and auto-publish any scheduled content that's due
+    await checkAndPublishScheduledContent();
+
     const docRef = doc(db, 'dailyContent', date);
     const docSnap = await getDoc(docRef);
 
@@ -39,7 +105,7 @@ export const getDailyContent = async (date) => {
     }
     return null;
   } catch (error) {
-    // If permission is denied (e.g. guest trying to read a draft), 
+    // If permission is denied (e.g. guest trying to read a draft),
     // treat it as "not found" so the app can fall back to the latest published content.
     if (error.code === 'permission-denied') {
       return null;
@@ -205,50 +271,6 @@ export const getAllDailyContentWithStatus = async (statusFilter = 'all') => {
 };
 
 /**
- * Get scheduled content that should be published
- * @returns {Promise<Array>} Content ready to publish
- */
-export const getScheduledContentToPublish = async () => {
-  try {
-    const now = new Date();
-    const q = query(
-      collection(db, 'dailyContent'),
-      where('status', '==', 'scheduled'),
-      where('publishDate', '<=', now)
-    );
-
-    const querySnapshot = await getDocs(q);
-
-    return querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-  } catch (error) {
-    console.error('Error getting scheduled content to publish:', error);
-    throw error;
-  }
-};
-
-/**
- * Publish scheduled content
- * @param {string} contentId - Content ID
- * @returns {Promise<void>}
- */
-export const publishScheduledContent = async (contentId) => {
-  try {
-    const docRef = doc(db, 'dailyContent', contentId);
-    await updateDoc(docRef, {
-      status: 'published',
-      published: true,
-      publishedAt: serverTimestamp()
-    });
-  } catch (error) {
-    console.error('Error publishing scheduled content:', error);
-    throw error;
-  }
-};
-
-/**
  * Update content status
  * @param {string} contentId - Content ID
  * @param {string} newStatus - New status
@@ -272,25 +294,6 @@ export const updateContentStatus = async (contentId, newStatus) => {
     await updateDoc(docRef, updateData);
   } catch (error) {
     console.error('Error updating content status:', error);
-    throw error;
-  }
-};
-
-/**
- * Check and auto-publish scheduled content
- * @returns {Promise<number>} Number of content pieces published
- */
-export const checkAndPublishScheduledContent = async () => {
-  try {
-    const contentToPublish = await getScheduledContentToPublish();
-
-    for (const content of contentToPublish) {
-      await publishScheduledContent(content.id);
-    }
-
-    return contentToPublish.length;
-  } catch (error) {
-    console.error('Error auto-publishing scheduled content:', error);
     throw error;
   }
 };

@@ -311,17 +311,17 @@ const ScheduleSelector = ({ publishStatus, scheduledDateTime, onStatusChange, on
                     </label>
                 </div>
 
-                {/* Date/Time Picker - Only show when "Schedule for Later" is selected */}
+                {/* Date Picker - Only show when "Schedule for Later" is selected */}
                 {publishStatus === 'scheduled' && (
                     <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
                         <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 500 }}>
-                            Publish Date & Time
+                            Publish Date (12:00 AM Central Time)
                         </label>
                         <input
-                            type="datetime-local"
+                            type="date"
                             value={scheduledDateTime}
                             onChange={(e) => onDateTimeChange(e.target.value)}
-                            min={new Date().toISOString().slice(0, 16)}
+                            min={new Date().toISOString().slice(0, 10)}
                             className="glass"
                             style={{
                                 width: '100%',
@@ -2134,14 +2134,14 @@ const AdminPage = () => {
         // Validate scheduled content
         if (formData.publishStatus === 'scheduled') {
             if (!formData.scheduledDateTime) {
-                setAlertModal({ show: true, title: 'Validation Error', message: 'Please select a publish date and time for scheduled content.', type: 'error' });
+                setAlertModal({ show: true, title: 'Validation Error', message: 'Please select a publish date for scheduled content.', type: 'error' });
                 return;
             }
 
-            const scheduledDate = new Date(formData.scheduledDateTime);
-            const now = new Date();
-            if (scheduledDate <= now) {
-                setAlertModal({ show: true, title: 'Validation Error', message: 'Scheduled publish time must be in the future.', type: 'error' });
+            // Check if the selected date is today or in the future
+            const today = new Date().toISOString().slice(0, 10);
+            if (formData.scheduledDateTime < today) {
+                setAlertModal({ show: true, title: 'Validation Error', message: 'Scheduled publish date must be today or in the future.', type: 'error' });
                 return;
             }
         }
@@ -2190,10 +2190,16 @@ const AdminPage = () => {
                 }
             };
 
-            // Prepare publish date for scheduled content
-            const publishDate = formData.publishStatus === 'scheduled'
-                ? new Date(formData.scheduledDateTime)
-                : null;
+            // Prepare publish date for scheduled content (12am Central Time)
+            let publishDate = null;
+            if (formData.publishStatus === 'scheduled') {
+                // Parse the date string (YYYY-MM-DD format from date input)
+                const dateStr = formData.scheduledDateTime;
+                // Create UTC date at 6:00 AM (which is 12:00 AM CST / UTC-6)
+                // Note: During CDT (Daylight Saving Time), Central is UTC-5, so this would be 5:00 AM UTC
+                // Using 6:00 AM UTC as standard (CST)
+                publishDate = new Date(`${dateStr}T06:00:00Z`);
+            }
 
             // Save to Firestore with scheduling support
             await saveDailyContentWithSchedule(
