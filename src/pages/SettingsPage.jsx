@@ -21,6 +21,8 @@ const SettingsPage = () => {
 
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState({ type: '', text: '' });
+    const [showLogoutModal, setShowLogoutModal] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
 
     // Load user data from Firebase Auth
     useEffect(() => {
@@ -127,25 +129,20 @@ const SettingsPage = () => {
     };
 
     const handleLogout = async () => {
-        if (window.confirm("Are you sure you want to log out?")) {
-            try {
-                await logout();
-                navigate('/');
-            } catch (error) {
-                setMessage({ type: 'error', text: 'Failed to log out' });
-            }
+        try {
+            await logout();
+            navigate('/');
+        } catch (error) {
+            setMessage({ type: 'error', text: 'Failed to log out' });
         }
     };
 
     const handleDeleteAccount = async () => {
-        const confirmed = window.confirm("Are you sure you want to delete your account? This action cannot be undone.");
-        if (confirmed) {
-            try {
-                await deleteAccount();
-                navigate('/');
-            } catch (error) {
-                setMessage({ type: 'error', text: 'Failed to delete account. You may need to re-authenticate.' });
-            }
+        try {
+            await deleteAccount();
+            navigate('/');
+        } catch (error) {
+            setMessage({ type: 'error', text: 'Failed to delete account. You may need to re-authenticate.' });
         }
     };
 
@@ -409,14 +406,14 @@ const SettingsPage = () => {
                     <h2 style={{ fontSize: '14px', color: 'var(--text-tertiary)', marginBottom: '12px', textTransform: 'uppercase' }}>Account Actions</h2>
                     <div className="glass" style={{ padding: '8px', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
                         <button
-                            onClick={handleLogout}
+                            onClick={() => setShowLogoutModal(true)}
                             style={{ width: '100%', padding: '16px', display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--text-primary)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}
                         >
                             <LogOut size={20} color="var(--text-secondary)" />
                             <span>Log Out</span>
                         </button>
                         <button
-                            onClick={handleDeleteAccount}
+                            onClick={() => setShowDeleteModal(true)}
                             style={{ width: '100%', padding: '16px', display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--accent-pink)' }}
                         >
                             <Trash2 size={20} />
@@ -425,6 +422,174 @@ const SettingsPage = () => {
                     </div>
                 </section>
             </div>
+
+            {/* Logout Confirmation Modal */}
+            {showLogoutModal && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'rgba(0, 0, 0, 0.7)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 1000,
+                    padding: '24px'
+                }}>
+                    <div className="glass" style={{
+                        maxWidth: '400px',
+                        width: '100%',
+                        padding: '32px 24px',
+                        borderRadius: '16px',
+                        border: '1px solid var(--border-surface)'
+                    }}>
+                        <h3 style={{
+                            fontSize: '20px',
+                            fontWeight: 600,
+                            color: 'var(--text-primary)',
+                            marginBottom: '12px',
+                            textAlign: 'center'
+                        }}>
+                            Log Out
+                        </h3>
+                        <p style={{
+                            fontSize: '14px',
+                            color: 'var(--text-secondary)',
+                            marginBottom: '24px',
+                            textAlign: 'center',
+                            lineHeight: 1.5
+                        }}>
+                            Are you sure you want to log out?
+                        </p>
+                        <div style={{
+                            display: 'flex',
+                            gap: '12px'
+                        }}>
+                            <button
+                                onClick={() => setShowLogoutModal(false)}
+                                style={{
+                                    flex: 1,
+                                    padding: '14px',
+                                    borderRadius: '8px',
+                                    background: 'var(--bg-surface)',
+                                    border: '1px solid var(--border-surface)',
+                                    color: 'var(--text-primary)',
+                                    fontSize: '15px',
+                                    fontWeight: 500,
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setShowLogoutModal(false);
+                                    handleLogout();
+                                }}
+                                style={{
+                                    flex: 1,
+                                    padding: '14px',
+                                    borderRadius: '8px',
+                                    background: '#06b6d4',
+                                    color: 'white',
+                                    fontSize: '15px',
+                                    fontWeight: 600,
+                                    cursor: 'pointer',
+                                    border: 'none'
+                                }}
+                            >
+                                Log Out
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Account Confirmation Modal */}
+            {showDeleteModal && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'rgba(0, 0, 0, 0.7)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 1000,
+                    padding: '24px'
+                }}>
+                    <div className="glass" style={{
+                        maxWidth: '400px',
+                        width: '100%',
+                        padding: '32px 24px',
+                        borderRadius: '16px',
+                        border: '1px solid var(--border-surface)'
+                    }}>
+                        <h3 style={{
+                            fontSize: '20px',
+                            fontWeight: 600,
+                            color: '#ef4444',
+                            marginBottom: '12px',
+                            textAlign: 'center'
+                        }}>
+                            Delete Account
+                        </h3>
+                        <p style={{
+                            fontSize: '14px',
+                            color: 'var(--text-secondary)',
+                            marginBottom: '24px',
+                            textAlign: 'center',
+                            lineHeight: 1.5
+                        }}>
+                            Are you sure you want to delete your account? This action cannot be undone.
+                        </p>
+                        <div style={{
+                            display: 'flex',
+                            gap: '12px'
+                        }}>
+                            <button
+                                onClick={() => setShowDeleteModal(false)}
+                                style={{
+                                    flex: 1,
+                                    padding: '14px',
+                                    borderRadius: '8px',
+                                    background: 'var(--bg-surface)',
+                                    border: '1px solid var(--border-surface)',
+                                    color: 'var(--text-primary)',
+                                    fontSize: '15px',
+                                    fontWeight: 500,
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setShowDeleteModal(false);
+                                    handleDeleteAccount();
+                                }}
+                                style={{
+                                    flex: 1,
+                                    padding: '14px',
+                                    borderRadius: '8px',
+                                    background: '#ef4444',
+                                    color: 'white',
+                                    fontSize: '15px',
+                                    fontWeight: 600,
+                                    cursor: 'pointer',
+                                    border: 'none'
+                                }}
+                            >
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
         </div>
     );
