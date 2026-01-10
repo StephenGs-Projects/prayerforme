@@ -19,17 +19,38 @@ const MorePage = () => {
         };
 
         try {
-            if (navigator.share) {
+            // Try Web Share API first
+            if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
                 await navigator.share(shareData);
             } else {
                 // Fallback: copy to clipboard
-                await navigator.clipboard.writeText(`${shareData.text} ${shareData.url}`);
-                alert('Link copied to clipboard!');
+                const textToCopy = `${shareData.text} ${shareData.url}`;
+
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(textToCopy);
+                    alert('Link copied to clipboard!');
+                } else {
+                    // Ultimate fallback for older browsers
+                    const textArea = document.createElement('textarea');
+                    textArea.value = textToCopy;
+                    textArea.style.position = 'fixed';
+                    textArea.style.left = '-999999px';
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    try {
+                        document.execCommand('copy');
+                        alert('Link copied to clipboard!');
+                    } catch (err) {
+                        alert('Unable to share. Please copy: ' + textToCopy);
+                    }
+                    document.body.removeChild(textArea);
+                }
             }
         } catch (err) {
             // User cancelled or error occurred
             if (err.name !== 'AbortError') {
                 console.error('Share error:', err);
+                alert('Unable to share. Please try again.');
             }
         }
     };
@@ -42,17 +63,38 @@ const MorePage = () => {
         };
 
         try {
-            if (navigator.share) {
+            // Try Web Share API first
+            if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
                 await navigator.share(shareData);
             } else {
                 // Fallback: copy to clipboard
-                await navigator.clipboard.writeText(`${shareData.text} ${shareData.url}`);
-                alert('Link copied to clipboard!');
+                const textToCopy = `${shareData.text} ${shareData.url}`;
+
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(textToCopy);
+                    alert('Link copied to clipboard!');
+                } else {
+                    // Ultimate fallback for older browsers
+                    const textArea = document.createElement('textarea');
+                    textArea.value = textToCopy;
+                    textArea.style.position = 'fixed';
+                    textArea.style.left = '-999999px';
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    try {
+                        document.execCommand('copy');
+                        alert('Link copied to clipboard!');
+                    } catch (err) {
+                        alert('Unable to share. Please copy: ' + textToCopy);
+                    }
+                    document.body.removeChild(textArea);
+                }
             }
         } catch (err) {
             // User cancelled or error occurred
             if (err.name !== 'AbortError') {
                 console.error('Share error:', err);
+                alert('Unable to share. Please try again.');
             }
         }
     };

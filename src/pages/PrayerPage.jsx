@@ -57,21 +57,28 @@ const PrayerPage = () => {
         fetchDailyContent();
     }, []);
 
+    // Navigate immediately when progress reaches 100
+    useEffect(() => {
+        if (progress >= 100) {
+            // Check if user is logged in before navigating
+            if (currentUser) {
+                navigate('/devotional');
+            } else {
+                navigate('/login');
+            }
+        }
+    }, [progress, currentUser, navigate]);
+
     const startHold = () => {
         setIsHolding(true);
         intervalRef.current = setInterval(() => {
             setProgress((prev) => {
-                if (prev >= 100) {
+                const newProgress = prev + 6;
+                if (newProgress >= 100) {
                     clearInterval(intervalRef.current);
-                    // Check if user is logged in before navigating
-                    if (currentUser) {
-                        navigate('/devotional');
-                    } else {
-                        navigate('/login');
-                    }
                     return 100;
                 }
-                return prev + 3;
+                return newProgress;
             });
         }, 60);
     };
@@ -100,17 +107,38 @@ const PrayerPage = () => {
         };
 
         try {
-            if (navigator.share) {
+            // Try Web Share API first
+            if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
                 await navigator.share(shareData);
             } else {
                 // Fallback: copy to clipboard
-                await navigator.clipboard.writeText(`${shareData.text} ${shareData.url}`);
-                alert('Link copied to clipboard!');
+                const textToCopy = `${shareData.text} ${shareData.url}`;
+
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(textToCopy);
+                    alert('Link copied to clipboard!');
+                } else {
+                    // Ultimate fallback for older browsers
+                    const textArea = document.createElement('textarea');
+                    textArea.value = textToCopy;
+                    textArea.style.position = 'fixed';
+                    textArea.style.left = '-999999px';
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    try {
+                        document.execCommand('copy');
+                        alert('Link copied to clipboard!');
+                    } catch (err) {
+                        alert('Unable to share. Please copy: ' + textToCopy);
+                    }
+                    document.body.removeChild(textArea);
+                }
             }
         } catch (err) {
             // User cancelled or error occurred
             if (err.name !== 'AbortError') {
                 console.error('Share error:', err);
+                alert('Unable to share. Please try again.');
             }
         }
     };
@@ -130,6 +158,38 @@ const PrayerPage = () => {
             padding: '32px 24px 220px 24px',
             position: 'relative'
         }}>
+            {/* Circular Expansion Overlay */}
+            <div style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: 'var(--accent-cyan)',
+                clipPath: `circle(${progress * 15}px at 50% calc(100vh - 120px - 40px))`,
+                transition: 'clip-path 0.05s linear',
+                pointerEvents: 'none',
+                zIndex: 50,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+            }}>
+                {/* "Prayed!" Text */}
+                {progress > 0 && (
+                    <h1 style={{
+                        fontSize: '48px',
+                        fontWeight: 300,
+                        color: 'white',
+                        opacity: progress / 100,
+                        transition: 'opacity 0.1s linear',
+                        fontFamily: 'var(--font-sans)',
+                        textAlign: 'center'
+                    }}>
+                        Prayed!
+                    </h1>
+                )}
+            </div>
+
             {/* Share Button */}
             <button
                 onClick={handleShare}
@@ -239,7 +299,8 @@ const PrayerPage = () => {
                 {/* Prayer Section */}
                 <div style={{
                     borderLeft: '2px solid var(--border-surface)',
-                    paddingLeft: '24px'
+                    paddingLeft: '24px',
+                    marginBottom: '80px'
                 }}>
                     <div style={{
                         display: 'flex',
@@ -318,7 +379,10 @@ const PrayerPage = () => {
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
-                    justifyContent: 'center'
+                    justifyContent: 'center',
+                    WebkitTouchCallout: 'none',
+                    WebkitUserSelect: 'none',
+                    userSelect: 'none'
                 }}>
                     <div
                         onMouseDown={startHold}
@@ -335,33 +399,19 @@ const PrayerPage = () => {
                             justifyContent: 'center',
                             cursor: 'pointer',
                             position: 'relative',
-                            overflow: 'hidden',
                             transform: isHolding ? 'scale(0.95)' : 'scale(1)',
                             transition: 'all 0.2s ease',
                             backgroundColor: 'transparent',
                             border: '2px solid var(--accent-cyan)',
-                            animation: !isHolding && progress === 0 ? 'pulseScale 2s infinite' : 'none'
+                            animation: !isHolding && progress === 0 ? 'pulseScale 2s infinite' : 'none',
+                            zIndex: 100
                         }}
                     >
-                        {/* Progress overlay */}
-                        <div style={{
-                            position: 'absolute',
-                            top: '50%',
-                            left: '50%',
-                            transform: 'translate(-50%, -50%)',
-                            width: `${progress}%`,
-                            height: `${progress}%`,
-                            borderRadius: '50%',
-                            background: 'rgba(6, 182, 212, 0.1)',
-                            transition: 'all 0.05s linear',
-                            zIndex: 0
-                        }} />
-
-                        <PrayerHandsIcon size={32} color="var(--accent-cyan)" style={{ zIndex: 1 }} />
+                        <PrayerHandsIcon size={32} color="var(--accent-cyan)" />
                     </div>
 
                     {/* Hold instruction text */}
-                    <p style={{
+                    {/* <p style={{
                         marginTop: '12px',
                         color: 'var(--text-tertiary)',
                         fontSize: '11px',
@@ -369,7 +419,7 @@ const PrayerPage = () => {
                         textAlign: 'center'
                     }}>
                         Hold Down Button
-                    </p>
+                    </p> */}
                 </div>
             </div>
         </div>
